@@ -32,7 +32,8 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/admin')
+      const { user } = await res.json()
+      router.push(user.role === 'ADMIN' ? '/admin' : '/dashboard')
       router.refresh()
     } catch {
       setError('Erro de conexão. Tente novamente.')

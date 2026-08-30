@@ -1,0 +1,213 @@
+'use client'
+
+import { useActionState, useState } from 'react'
+import { useFormStatus } from 'react-dom'
+import { upsertLeagueAction, deleteLeagueAction, type LeagueFormState } from '@/app/admin/ligas/actions'
+
+type League = {
+  id: string
+  name: string
+  slug: string
+  logoUrl: string | null
+  teamCount: number
+}
+
+const initialState: LeagueFormState = {}
+
+const inputCls =
+  'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
+
+function SubmitButton({ editing }: { editing: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+    >
+      {pending ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar liga'}
+    </button>
+  )
+}
+
+function LeagueBadge({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+  if (logoUrl) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name}
+        className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-100 object-contain bg-slate-50 p-0.5"
+      />
+    )
+  }
+  return (
+    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-lg font-bold text-emerald-700">
+      🏆
+    </div>
+  )
+}
+
+export function LeagueManager({ leagues }: { leagues: League[] }) {
+  const [state, formAction] = useActionState(upsertLeagueAction, initialState)
+  const [editing, setEditing] = useState<League | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string>('')
+
+  function startEdit(league: League) {
+    setEditing(league)
+    setLogoPreview(league.logoUrl ?? '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function cancel() {
+    setEditing(null)
+    setLogoPreview('')
+  }
+
+  return (
+    <div className="space-y-10">
+      {/* Formulário */}
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 className="mb-5 text-lg font-bold text-slate-800">
+          {editing ? 'Editar liga' : 'Nova liga'}
+        </h2>
+
+        <form action={formAction} className="space-y-4">
+          {editing && <input type="hidden" name="id" value={editing.id} />}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Nome <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="name"
+              required
+              defaultValue={editing?.name ?? ''}
+              key={editing?.id ?? 'new-name'}
+              className={inputCls}
+              placeholder="Ex: Campeonato Piauiense"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              URL do logo
+              <span className="ml-1 text-xs font-normal text-gray-400">(opcional)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              {(logoPreview || editing?.logoUrl) && (
+                <img
+                  src={logoPreview || editing?.logoUrl || ''}
+                  alt=""
+                  className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-100 object-contain bg-slate-50 p-0.5"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              )}
+              <input
+                name="logoUrl"
+                type="url"
+                defaultValue={editing?.logoUrl ?? ''}
+                key={editing?.id ?? 'new-logo'}
+                className={inputCls}
+                placeholder="https://..."
+                onChange={(e) => setLogoPreview(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {state.error && (
+            <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {state.error}
+            </div>
+          )}
+          {state.success && (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {state.success}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <SubmitButton editing={!!editing} />
+            {editing && (
+              <button
+                type="button"
+                onClick={cancel}
+                className="rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Lista */}
+      {leagues.length > 0 && (
+        <div>
+          <h2 className="mb-4 text-lg font-bold text-slate-800">
+            Ligas cadastradas
+            <span className="ml-2 text-base font-normal text-gray-400">({leagues.length})</span>
+          </h2>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Liga</th>
+                  <th className="hidden px-4 py-3 text-left sm:table-cell">Times</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {leagues.map((league) => (
+                  <tr key={league.id} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <LeagueBadge name={league.name} logoUrl={league.logoUrl} />
+                        <div>
+                          <p className="font-medium text-slate-800">{league.name}</p>
+                          <p className="text-xs text-slate-400">/{league.slug}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-3 text-slate-500 sm:table-cell">
+                      {league.teamCount} {league.teamCount === 1 ? 'time' : 'times'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <a
+                          href={`/admin/ligas?liga=${league.id}`}
+                          className="rounded px-3 py-1 text-xs font-medium text-sky-600 hover:bg-sky-50"
+                        >
+                          Times
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(league)}
+                          className="rounded px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                        >
+                          Editar
+                        </button>
+                        <form action={deleteLeagueAction}>
+                          <input type="hidden" name="id" value={league.id} />
+                          <button
+                            type="submit"
+                            className="rounded px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                            onClick={(e) => {
+                              if (!confirm(`Excluir "${league.name}"? Os times não serão removidos.`)) e.preventDefault()
+                            }}
+                          >
+                            Excluir
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

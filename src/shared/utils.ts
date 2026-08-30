@@ -22,3 +22,14 @@ export function formatDateTime(date: Date | string): string {
     minute: '2-digit',
   }).format(new Date(date))
 }
+
+export function toSlug(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}

@@ -112,6 +112,7 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   awayMatches: many(matches, { relationName: 'awayTeam' }),
   standings: many(standings),
   topScorers: many(topScorers),
+  players: many(players),
 }))
 
 // ─── Matches ──────────────────────────────────────────────────────────────────
@@ -222,6 +223,27 @@ export const streams = pgTable(
     index('idx_streams_scheduled').on(table.scheduledAt),
   ],
 )
+
+// ─── Players ──────────────────────────────────────────────────────────────────
+
+export const players = pgTable(
+  'players',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    position: varchar('position', { length: 100 }).notNull(),
+    photoUrl: text('photo_url'),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('idx_players_team').on(table.teamId)],
+)
+
+export const playersRelations = relations(players, ({ one }) => ({
+  team: one(teams, { fields: [players.teamId], references: [teams.id] }),
+}))
 
 // ─── Photo Albums ─────────────────────────────────────────────────────────────
 
