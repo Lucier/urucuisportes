@@ -20,6 +20,8 @@ export const matchStatusEnum = pgEnum('match_status', [
   'POSTPONED',
 ])
 
+export const streamStatusEnum = pgEnum('stream_status', ['LIVE', 'SCHEDULED', 'FINISHED'])
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const users = pgTable(
@@ -201,6 +203,25 @@ export const topScorersRelations = relations(topScorers, ({ one }) => ({
   team: one(teams, { fields: [topScorers.teamId], references: [teams.id] }),
   league: one(leagues, { fields: [topScorers.leagueId], references: [leagues.id] }),
 }))
+
+// ─── Streams ──────────────────────────────────────────────────────────────────
+
+export const streams = pgTable(
+  'streams',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    title: varchar('title', { length: 255 }).notNull(),
+    description: text('description'),
+    url: text('url').notNull(),
+    status: streamStatusEnum('status').default('SCHEDULED').notNull(),
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_streams_status').on(table.status),
+    index('idx_streams_scheduled').on(table.scheduledAt),
+  ],
+)
 
 // ─── Photo Albums ─────────────────────────────────────────────────────────────
 
