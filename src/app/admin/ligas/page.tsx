@@ -22,14 +22,21 @@ export default async function AdminLigasPage({ searchParams }: Props) {
   // ── Vista de times de uma liga ─────────────────────────────────────────────
   if (leagueId) {
     const [league] = await db
-      .select({ id: leagues.id, name: leagues.name, slug: leagues.slug, logoUrl: leagues.logoUrl })
+      .select({
+        id: leagues.id,
+        name: leagues.name,
+        slug: leagues.slug,
+        logoUrl: leagues.logoUrl,
+        tipo: leagues.tipo,
+        numeroGrupos: leagues.numeroGrupos,
+      })
       .from(leagues)
       .where(eq(leagues.id, leagueId))
 
     if (!league) redirect('/admin/ligas')
 
     const allTeams = await db
-      .select({ id: teams.id, name: teams.name, logoUrl: teams.logoUrl, leagueId: teams.leagueId })
+      .select({ id: teams.id, name: teams.name, logoUrl: teams.logoUrl, leagueId: teams.leagueId, grupo: teams.grupo })
       .from(teams)
       .orderBy(teams.name)
 
@@ -69,6 +76,8 @@ export default async function AdminLigasPage({ searchParams }: Props) {
 
         <LeagueTeamsPanel
           leagueId={leagueId}
+          tipo={league.tipo}
+          numeroGrupos={league.numeroGrupos}
           inLeague={inLeague}
           outLeague={outLeague}
           noTeams={allTeams.length === 0}
@@ -84,6 +93,8 @@ export default async function AdminLigasPage({ searchParams }: Props) {
       name: leagues.name,
       slug: leagues.slug,
       logoUrl: leagues.logoUrl,
+      tipo: leagues.tipo,
+      numeroGrupos: leagues.numeroGrupos,
       teamCount: count(teams.id),
     })
     .from(leagues)

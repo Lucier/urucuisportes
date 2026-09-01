@@ -14,7 +14,12 @@ export type LeagueFormState = { error?: string; success?: string }
 const leagueSchema = z.object({
   name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres.').max(255),
   logoUrl: z.string().url('URL do logo inválida.').optional().or(z.literal('')),
-})
+  tipo: z.enum(['pontos_corridos', 'grupos']),
+  numeroGrupos: z.coerce.number().int().min(2).max(16).nullable(),
+}).refine(
+  (d) => d.tipo !== 'grupos' || d.numeroGrupos !== null,
+  { message: 'Informe o número de grupos.', path: ['numeroGrupos'] },
+)
 
 function revalidate() {
   revalidatePath('/admin/ligas')
@@ -31,16 +36,19 @@ export async function upsertLeagueAction(
     return { error: 'Acesso negado.' }
   }
 
+  const rawNumeroGrupos = formData.get('numeroGrupos')
   const parsed = leagueSchema.safeParse({
     name: formData.get('name'),
     logoUrl: formData.get('logoUrl') || '',
+    tipo: formData.get('tipo'),
+    numeroGrupos: rawNumeroGrupos ? Number(rawNumeroGrupos) : null,
   })
 
   if (!parsed.success) {
     return { error: parsed.error.errors.map((e) => e.message).join(', ') }
   }
 
-  const { name, logoUrl } = parsed.data
+  const { name, logoUrl, tipo, numeroGrupos } = parsed.data
   const id = formData.get('id') as string | null
   const baseSlug = toSlug(name)
 
@@ -65,15 +73,16 @@ export async function upsertLeagueAction(
   }
 
   try {
+    const gruposValue = tipo === 'grupos' ? (numeroGrupos ?? null) : null
     if (id) {
       const slug = await uniqueSlug(baseSlug, id)
       await db
         .update(leagues)
-        .set({ name, slug, logoUrl: logoUrl || null })
+        .set({ name, slug, logoUrl: logoUrl || null, tipo, numeroGrupos: gruposValue })
         .where(eq(leagues.id, id))
     } else {
       const slug = await uniqueSlug(baseSlug)
-      await db.insert(leagues).values({ name, slug, logoUrl: logoUrl || null })
+      await db.insert(leagues).values({ name, slug, logoUrl: logoUrl || null, tipo, numeroGrupos: gruposValue })
     }
   } catch {
     return { error: 'Erro ao salvar a liga.' }
@@ -104,7 +113,9 @@ export async function addTeamToLeagueAction(formData: FormData): Promise<void> {
   const teamId = formData.get('teamId') as string | null
   const leagueId = formData.get('leagueId') as string | null
   if (!teamId || !leagueId) return
-  await db.update(teams).set({ leagueId }).where(eq(teams.id, teamId))
+  const rawGrupo = formData.get('grupo')
+  const grupo = rawGrupo ? Number(rawGrupo) : null
+  await db.update(teams).set({ leagueId, grupo }).where(eq(teams.id, teamId))
   revalidatePath('/admin/ligas', 'page')
   revalidatePath('/estatisticas', 'page')
 }
@@ -118,7 +129,7 @@ export async function removeTeamFromLeagueAction(formData: FormData): Promise<vo
   const teamId = formData.get('teamId') as string | null
   const leagueId = formData.get('leagueId') as string | null
   if (!teamId || !leagueId) return
-  await db.update(teams).set({ leagueId: null }).where(eq(teams.id, teamId))
+  await db.update(teams).set({ leagueId: null, grupo: null }).where(eq(teams.id, teamId))
   revalidatePath('/admin/ligas', 'page')
   revalidatePath('/estatisticas', 'page')
 }

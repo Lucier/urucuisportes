@@ -4,11 +4,15 @@ import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { upsertLeagueAction, deleteLeagueAction, type LeagueFormState } from '@/app/admin/ligas/actions'
 
+type LeagueTipo = 'pontos_corridos' | 'grupos'
+
 type League = {
   id: string
   name: string
   slug: string
   logoUrl: string | null
+  tipo: LeagueTipo
+  numeroGrupos: number | null
   teamCount: number
 }
 
@@ -16,6 +20,11 @@ const initialState: LeagueFormState = {}
 
 const inputCls =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
+
+const selectCls =
+  'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white'
+
+const GRUPO_OPTIONS = [2, 3, 4, 6, 8, 10, 12, 16]
 
 function SubmitButton({ editing }: { editing: boolean }) {
   const { pending } = useFormStatus()
@@ -47,20 +56,38 @@ function LeagueBadge({ name, logoUrl }: { name: string; logoUrl: string | null }
   )
 }
 
+function TipoBadge({ tipo, numeroGrupos }: { tipo: LeagueTipo; numeroGrupos: number | null }) {
+  if (tipo === 'grupos') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+        Grupos{numeroGrupos ? ` · ${numeroGrupos}` : ''}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+      Pts corridos
+    </span>
+  )
+}
+
 export function LeagueManager({ leagues }: { leagues: League[] }) {
   const [state, formAction] = useActionState(upsertLeagueAction, initialState)
   const [editing, setEditing] = useState<League | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>('')
+  const [tipo, setTipo] = useState<LeagueTipo>('pontos_corridos')
 
   function startEdit(league: League) {
     setEditing(league)
     setLogoPreview(league.logoUrl ?? '')
+    setTipo(league.tipo)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function cancel() {
     setEditing(null)
     setLogoPreview('')
+    setTipo('pontos_corridos')
   }
 
   return (
@@ -114,6 +141,43 @@ export function LeagueManager({ leagues }: { leagues: League[] }) {
             </div>
           </div>
 
+          {/* Tipo */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Tipo <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="tipo"
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as LeagueTipo)}
+              className={selectCls}
+            >
+              <option value="pontos_corridos">Pontos corridos</option>
+              <option value="grupos">Grupos</option>
+            </select>
+          </div>
+
+          {/* Número de grupos — visível só quando tipo = grupos */}
+          {tipo === 'grupos' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Número de grupos <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="numeroGrupos"
+                defaultValue={editing?.numeroGrupos ?? GRUPO_OPTIONS[0]}
+                key={editing?.id ?? 'new-grupos'}
+                className={selectCls}
+              >
+                {GRUPO_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n} grupo{n > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {state.error && (
             <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
               {state.error}
@@ -153,6 +217,7 @@ export function LeagueManager({ leagues }: { leagues: League[] }) {
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3 text-left">Liga</th>
+                  <th className="hidden px-4 py-3 text-left sm:table-cell">Tipo</th>
                   <th className="hidden px-4 py-3 text-left sm:table-cell">Times</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -168,6 +233,9 @@ export function LeagueManager({ leagues }: { leagues: League[] }) {
                           <p className="text-xs text-slate-400">/{league.slug}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="hidden px-4 py-3 sm:table-cell">
+                      <TipoBadge tipo={league.tipo} numeroGrupos={league.numeroGrupos} />
                     </td>
                     <td className="hidden px-4 py-3 text-slate-500 sm:table-cell">
                       {league.teamCount} {league.teamCount === 1 ? 'time' : 'times'}

@@ -19,8 +19,8 @@ export const matchStatusEnum = pgEnum('match_status', [
   'FINISHED',
   'POSTPONED',
 ])
-
 export const streamStatusEnum = pgEnum('stream_status', ['LIVE', 'SCHEDULED', 'FINISHED'])
+export const leagueTypeEnum = pgEnum('league_type', ['pontos_corridos', 'grupos'])
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -50,13 +50,40 @@ export const leagues = pgTable('leagues', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   logoUrl: text('logo_url'),
   country: varchar('country', { length: 100 }),
+  tipo: leagueTypeEnum('tipo').default('pontos_corridos').notNull(),
+  numeroGrupos: integer('numero_grupos'),
 })
 
 export const leaguesRelations = relations(leagues, ({ many }) => ({
   teams: many(teams),
+  rounds: many(rounds),
   matches: many(matches),
   standings: many(standings),
   topScorers: many(topScorers),
+}))
+
+// ─── Rounds ───────────────────────────────────────────────────────────────────
+
+export const rounds = pgTable(
+  'rounds',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    leagueId: uuid('league_id')
+      .notNull()
+      .references(() => leagues.id, { onDelete: 'cascade' }),
+    numero: integer('numero').notNull(),
+    nome: varchar('nome', { length: 255 }),
+    grupo: integer('grupo'),
+  },
+  (table) => [
+    index('idx_rounds_league').on(table.leagueId),
+    index('idx_rounds_grupo').on(table.grupo),
+  ],
+)
+
+export const roundsRelations = relations(rounds, ({ one, many }) => ({
+  league: one(leagues, { fields: [rounds.leagueId], references: [leagues.id] }),
+  matches: many(matches),
 }))
 
 // ─── Categories ───────────────────────────────────────────────────────────────
@@ -104,6 +131,7 @@ export const teams = pgTable('teams', {
   name: varchar('name', { length: 255 }).notNull(),
   logoUrl: text('logo_url'),
   leagueId: uuid('league_id').references(() => leagues.id),
+  grupo: integer('grupo'),
 })
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -132,9 +160,11 @@ export const matches = pgTable(
     status: matchStatusEnum('status').default('SCHEDULED').notNull(),
     date: timestamp('date', { withTimezone: true }).notNull(),
     leagueId: uuid('league_id').references(() => leagues.id),
+    roundId: uuid('round_id').references(() => rounds.id, { onDelete: 'set null' }),
   },
   (table) => [
     index('idx_matches_league').on(table.leagueId),
+    index('idx_matches_round').on(table.roundId),
     index('idx_matches_date').on(table.date),
     index('idx_matches_status').on(table.status),
   ],
@@ -152,6 +182,7 @@ export const matchesRelations = relations(matches, ({ one }) => ({
     relationName: 'awayTeam',
   }),
   league: one(leagues, { fields: [matches.leagueId], references: [leagues.id] }),
+  round: one(rounds, { fields: [matches.roundId], references: [rounds.id] }),
 }))
 
 // ─── Standings ────────────────────────────────────────────────────────────────
