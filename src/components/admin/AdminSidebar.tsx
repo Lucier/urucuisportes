@@ -20,7 +20,7 @@ const links = [
     ),
   },
   {
-    href: '/admin',
+    href: '/admin/noticias',
     label: 'Notícias',
     exact: true,
     icon: (

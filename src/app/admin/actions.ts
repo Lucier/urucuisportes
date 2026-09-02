@@ -44,7 +44,7 @@ const matchSchema = z.object({
 // ─── Revalidation helper ──────────────────────────────────────────────────────
 
 function revalidateAll() {
-  revalidatePath('/admin')
+  revalidatePath('/admin/noticias')
   revalidatePath('/noticias')
   revalidatePath('/')
 }
@@ -159,7 +159,7 @@ export async function updateMatchAction(
     return { error: 'Erro ao atualizar a partida.' }
   }
 
-  revalidatePath('/admin')
+  revalidatePath('/admin/noticias')
   revalidatePath('/')
   revalidatePath('/estatisticas')
   return { success: 'Partida atualizada.' }

@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { desc, eq, count, asc, and } from 'drizzle-orm'
+import { desc, eq, count, asc, and, gte, lt, inArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/database/client'
 import {
@@ -14,6 +14,7 @@ import {
   streams,
   categories,
   users,
+  topScorers,
 } from '@/database/schema'
 import { usersRepository } from '@/modules/users/repository'
 import { UserRole } from '@/shared/types/auth'
@@ -154,6 +155,7 @@ export default async function DashboardPage({
     recentMatches,
     recentPosts,
     leagueList,
+    leagueTopScorers,
   ] = await Promise.all([
     db.select({ total: count() }).from(posts),
     db.select({ total: count() }).from(matches),
@@ -168,21 +170,39 @@ export default async function DashboardPage({
       .from(matches)
       .groupBy(matches.status),
 
-    db
-      .select({
-        id: matches.id,
-        homeTeamName: homeTeamAlias.name,
-        awayTeamName: awayTeamAlias.name,
-        homeScore: matches.homeScore,
-        awayScore: matches.awayScore,
-        status: matches.status,
-        date: matches.date,
-      })
-      .from(matches)
-      .leftJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))
-      .leftJoin(awayTeamAlias, eq(matches.awayTeamId, awayTeamAlias.id))
-      .orderBy(desc(matches.date))
-      .limit(6),
+    (() => {
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+      const tomorrowStart = new Date(todayStart)
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+
+      const todayFilter = and(
+        gte(matches.date, todayStart),
+        lt(matches.date, tomorrowStart),
+        inArray(matches.status, ['LIVE', 'SCHEDULED', 'FINISHED']),
+        leagueId ? eq(matches.leagueId, leagueId) : undefined,
+      )
+
+      return db
+        .select({
+          id: matches.id,
+          homeTeamName: homeTeamAlias.name,
+          awayTeamName: awayTeamAlias.name,
+          homeScore: matches.homeScore,
+          awayScore: matches.awayScore,
+          status: matches.status,
+          date: matches.date,
+        })
+        .from(matches)
+        .leftJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))
+        .leftJoin(awayTeamAlias, eq(matches.awayTeamId, awayTeamAlias.id))
+        .where(todayFilter)
+        .orderBy(
+          sql`CASE ${matches.status} WHEN 'LIVE' THEN 1 WHEN 'SCHEDULED' THEN 2 WHEN 'FINISHED' THEN 3 ELSE 4 END`,
+          asc(matches.date),
+        )
+        .limit(5)
+    })(),
 
     db
       .select({
@@ -203,6 +223,20 @@ export default async function DashboardPage({
       .select({ id: leagues.id, name: leagues.name, tipo: leagues.tipo })
       .from(leagues)
       .orderBy(asc(leagues.name)),
+
+    db
+      .select({
+        id: topScorers.id,
+        playerName: topScorers.playerName,
+        teamName: teams.name,
+        goals: topScorers.goals,
+        assists: topScorers.assists,
+      })
+      .from(topScorers)
+      .leftJoin(teams, eq(topScorers.teamId, teams.id))
+      .where(leagueId ? eq(topScorers.leagueId, leagueId) : sql`false`)
+      .orderBy(desc(topScorers.goals), desc(topScorers.assists))
+      .limit(5),
   ])
 
   const selectedLeague = leagueList.find((l) => l.id === leagueId)
@@ -304,7 +338,7 @@ export default async function DashboardPage({
         <StatCard
           label="Notícias"
           value={postCount.total}
-          href={isAdmin ? '/admin' : '/noticias'}
+          href={isAdmin ? '/admin/noticias' : '/noticias'}
           color="emerald"
           icon={
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -456,7 +490,12 @@ export default async function DashboardPage({
         {/* Partidas recentes */}
         <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-50 px-5 py-4">
-            <h2 className="text-sm font-bold text-slate-800">Partidas recentes</h2>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Partidas recentes</h2>
+              {selectedLeague && (
+                <p className="mt-0.5 text-[11px] text-slate-400">{selectedLeague.name}</p>
+              )}
+            </div>
             {isAdmin && (
               <Link href="/admin/rodadas" className="text-xs font-medium text-emerald-600 hover:underline">
                 Gerenciar →
@@ -464,7 +503,9 @@ export default async function DashboardPage({
             )}
           </div>
           {recentMatches.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-slate-400">Nenhuma partida cadastrada.</p>
+            <p className="px-5 py-8 text-center text-sm text-slate-400">
+              {selectedLeague ? `Nenhuma partida encontrada para ${selectedLeague.name}.` : 'Nenhuma partida cadastrada.'}
+            </p>
           ) : (
             <ul className="divide-y divide-slate-50">
               {recentMatches.map((m) => {
@@ -501,6 +542,59 @@ export default async function DashboardPage({
                 )
               })}
             </ul>
+          )}
+        </section>
+
+        {/* Artilharia */}
+        <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-50 px-5 py-4">
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Artilharia</h2>
+              {selectedLeague && (
+                <p className="mt-0.5 text-[11px] text-slate-400">{selectedLeague.name}</p>
+              )}
+            </div>
+            <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </div>
+          {!selectedLeague ? (
+            <p className="px-5 py-8 text-center text-sm text-slate-400">
+              Selecione uma liga para ver a artilharia.
+            </p>
+          ) : leagueTopScorers.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-slate-400">
+              Nenhum artilheiro cadastrado para esta liga.
+            </p>
+          ) : (
+            <ol className="divide-y divide-slate-50">
+              {leagueTopScorers.map((scorer, i) => (
+                <li key={scorer.id} className="flex items-center gap-3 px-5 py-3">
+                  <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold
+                    ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-slate-100 text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-400'}`}>
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-slate-800">{scorer.playerName}</p>
+                    {scorer.teamName && (
+                      <p className="truncate text-[11px] text-slate-400">{scorer.teamName}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-3 text-right">
+                    <div>
+                      <p className="text-base font-extrabold tabular-nums text-slate-900">{scorer.goals}</p>
+                      <p className="text-[10px] text-slate-400">gols</p>
+                    </div>
+                    {scorer.assists > 0 && (
+                      <div>
+                        <p className="text-sm font-bold tabular-nums text-slate-500">{scorer.assists}</p>
+                        <p className="text-[10px] text-slate-400">assist.</p>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           )}
         </section>
 
