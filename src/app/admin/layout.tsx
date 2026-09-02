@@ -1,6 +1,15 @@
+import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth'
+import { UserRole } from '@/shared/types/auth'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser()
+
+  if (!user || user.role !== UserRole.ADMIN) {
+    redirect('/login')
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">

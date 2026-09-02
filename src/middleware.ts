@@ -44,10 +44,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    const response = NextResponse.next()
-    response.headers.set('x-user-id', user.userId)
-    response.headers.set('x-user-role', user.role)
-    return response
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-user-id', user.userId)
+    requestHeaders.set('x-user-role', user.role)
+    return NextResponse.next({ request: { headers: requestHeaders } })
   } catch {
     const response = pathname.startsWith('/api/')
       ? NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
