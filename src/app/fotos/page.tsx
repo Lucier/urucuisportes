@@ -16,9 +16,9 @@ export default async function FotosPage() {
     .orderBy(desc(photoAlbums.createdAt))
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Fotos</h1>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-10">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Fotos</h1>
         <p className="mt-1 text-gray-500">Clique em um álbum para ver as fotos</p>
       </div>
 

@@ -57,11 +57,11 @@ export default async function NoticiasPage({ searchParams }: PageProps) {
   ])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Notícias</h1>
-        <p className="mt-1 text-gray-500">Fique por dentro de tudo que acontece no esporte</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Notícias</h1>
+        <p className="mt-1 text-sm text-gray-500 sm:text-base">Fique por dentro de tudo que acontece no esporte</p>
       </div>
 
       {/* Filtro de categorias */}

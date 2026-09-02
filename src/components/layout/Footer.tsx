@@ -27,8 +27,8 @@ export function Footer() {
 
   return (
     <footer className="mt-auto bg-slate-900 text-gray-400">
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-1 md:grid-cols-3">
           <div>
             <div className="mb-4 flex items-center gap-2">
               <span className="text-xl" aria-hidden>
@@ -65,7 +65,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 border-t border-slate-800 pt-6 text-center text-xs text-gray-600">
+        <div className="col-span-2 mt-8 border-t border-slate-800 pt-6 text-center text-xs text-gray-600 sm:col-span-1 sm:mt-10">
           © {year} Urucuí Esportes. Todos os direitos reservados.
         </div>
       </div>

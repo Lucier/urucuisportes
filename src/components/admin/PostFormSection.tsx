@@ -193,50 +193,82 @@ export function PostFormSection({ categories, initialPosts, adminId }: Props) {
       {/* Post list */}
       {initialPosts.length > 0 && (
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left">Título</th>
-                <th className="px-4 py-3 text-left">Categoria</th>
-                <th className="px-4 py-3 text-left">Data</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {initialPosts.map((post) => (
-                <tr key={post.id} className="hover:bg-slate-50/50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{post.title}</td>
-                  <td className="px-4 py-3 text-slate-500">{post.categoryName ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-400">
-                    {new Date(post.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(post)}
-                        className="rounded px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-                      >
-                        Editar
-                      </button>
-                      <form action={deletePostAction}>
-                        <input type="hidden" name="id" value={post.id} />
-                        <button
-                          type="submit"
-                          className="rounded px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                          onClick={(e) => {
-                            if (!confirm('Excluir esta notícia?')) e.preventDefault()
-                          }}
-                        >
-                          Excluir
-                        </button>
-                      </form>
-                    </div>
-                  </td>
+          {/* Mobile: card list */}
+          <ul className="divide-y divide-slate-50 sm:hidden">
+            {initialPosts.map((post) => (
+              <li key={post.id} className="px-4 py-3">
+                <p className="font-medium text-slate-800 leading-snug">{post.title}</p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {post.categoryName ?? '—'} · {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(post)}
+                    className="rounded px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Editar
+                  </button>
+                  <form action={deletePostAction}>
+                    <input type="hidden" name="id" value={post.id} />
+                    <button
+                      type="submit"
+                      className="rounded px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                      onClick={(e) => { if (!confirm('Excluir esta notícia?')) e.preventDefault() }}
+                    >
+                      Excluir
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: table */}
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Título</th>
+                  <th className="px-4 py-3 text-left">Categoria</th>
+                  <th className="px-4 py-3 text-left">Data</th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {initialPosts.map((post) => (
+                  <tr key={post.id} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3 font-medium text-slate-800">{post.title}</td>
+                    <td className="px-4 py-3 text-slate-500">{post.categoryName ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-400">
+                      {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(post)}
+                          className="rounded px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                        >
+                          Editar
+                        </button>
+                        <form action={deletePostAction}>
+                          <input type="hidden" name="id" value={post.id} />
+                          <button
+                            type="submit"
+                            className="rounded px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                            onClick={(e) => { if (!confirm('Excluir esta notícia?')) e.preventDefault() }}
+                          >
+                            Excluir
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </section>

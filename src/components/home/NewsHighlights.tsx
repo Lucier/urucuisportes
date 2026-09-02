@@ -27,8 +27,8 @@ export async function NewsHighlights() {
 
   return (
     <section>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Principais Notícias</h2>
+      <div className="mb-4 flex items-center justify-between sm:mb-6">
+        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Principais Notícias</h2>
         <Link href="/noticias" className="text-sm font-medium text-emerald-600 hover:underline">
           Ver todas →
         </Link>

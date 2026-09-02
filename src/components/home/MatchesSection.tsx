@@ -50,28 +50,28 @@ function MatchCard({ match }: { match: MatchRow }) {
   return (
     <div
       className={cn(
-        'flex items-center justify-between rounded-xl border bg-white px-5 py-4 shadow-sm',
+        'flex items-center justify-between rounded-xl border bg-white px-3 py-3 shadow-sm sm:px-5 sm:py-4',
         isLive && 'border-red-200 bg-red-50/40',
       )}
     >
       {/* Time da casa */}
-      <div className="flex w-5/12 items-center justify-end gap-3">
-        <span className="truncate text-right text-sm font-semibold text-slate-800">
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+        <span className="truncate text-right text-xs font-semibold text-slate-800 sm:text-sm">
           {match.homeTeamName}
         </span>
-        <div className="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-br from-slate-600 to-slate-900" />
+        <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-br from-slate-600 to-slate-900 sm:h-9 sm:w-9" />
       </div>
 
       {/* Placar / Horário */}
-      <div className="flex w-2/12 flex-col items-center gap-1">
+      <div className="mx-2 flex flex-shrink-0 flex-col items-center gap-1">
         {showScore ? (
-          <span className="text-xl font-bold tabular-nums text-slate-900">
+          <span className="text-base font-bold tabular-nums text-slate-900 sm:text-xl">
             {match.homeScore ?? 0}
             <span className="mx-1 text-slate-300">×</span>
             {match.awayScore ?? 0}
           </span>
         ) : (
-          <span className="text-sm font-semibold text-slate-600">
+          <span className="text-xs font-semibold text-slate-600 sm:text-sm">
             {new Intl.DateTimeFormat('pt-BR', {
               hour: '2-digit',
               minute: '2-digit',
@@ -82,9 +82,9 @@ function MatchCard({ match }: { match: MatchRow }) {
       </div>
 
       {/* Time visitante */}
-      <div className="flex w-5/12 items-center gap-3">
-        <div className="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-br from-emerald-600 to-slate-900" />
-        <span className="truncate text-sm font-semibold text-slate-800">{match.awayTeamName}</span>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-br from-emerald-600 to-slate-900 sm:h-9 sm:w-9" />
+        <span className="truncate text-xs font-semibold text-slate-800 sm:text-sm">{match.awayTeamName}</span>
       </div>
     </div>
   )
@@ -119,8 +119,8 @@ export async function MatchesSection() {
 
   return (
     <section>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Jogos</h2>
+      <div className="mb-4 flex items-center justify-between sm:mb-6">
+        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Jogos</h2>
         <Link href="/jogos" className="text-sm font-medium text-emerald-600 hover:underline">
           Ver todos →
         </Link>

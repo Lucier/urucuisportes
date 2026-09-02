@@ -170,7 +170,7 @@ export const matches = pgTable(
   ],
 )
 
-export const matchesRelations = relations(matches, ({ one }) => ({
+export const matchesRelations = relations(matches, ({ one, many }) => ({
   homeTeam: one(teams, {
     fields: [matches.homeTeamId],
     references: [teams.id],
@@ -183,6 +183,7 @@ export const matchesRelations = relations(matches, ({ one }) => ({
   }),
   league: one(leagues, { fields: [matches.leagueId], references: [leagues.id] }),
   round: one(rounds, { fields: [matches.roundId], references: [rounds.id] }),
+  goals: many(matchGoals),
 }))
 
 // ─── Standings ────────────────────────────────────────────────────────────────
@@ -272,8 +273,35 @@ export const players = pgTable(
   (table) => [index('idx_players_team').on(table.teamId)],
 )
 
-export const playersRelations = relations(players, ({ one }) => ({
+export const playersRelations = relations(players, ({ one, many }) => ({
   team: one(teams, { fields: [players.teamId], references: [teams.id] }),
+  matchGoals: many(matchGoals),
+}))
+
+// ─── Match Goals ──────────────────────────────────────────────────────────────
+
+export const matchGoals = pgTable(
+  'match_goals',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    matchId: uuid('match_id')
+      .notNull()
+      .references(() => matches.id, { onDelete: 'cascade' }),
+    playerId: uuid('player_id')
+      .notNull()
+      .references(() => players.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id),
+    goals: integer('goals').default(1).notNull(),
+  },
+  (table) => [index('idx_match_goals_match').on(table.matchId)],
+)
+
+export const matchGoalsRelations = relations(matchGoals, ({ one }) => ({
+  match: one(matches, { fields: [matchGoals.matchId], references: [matches.id] }),
+  player: one(players, { fields: [matchGoals.playerId], references: [players.id] }),
+  team: one(teams, { fields: [matchGoals.teamId], references: [teams.id] }),
 }))
 
 // ─── Photo Albums ─────────────────────────────────────────────────────────────

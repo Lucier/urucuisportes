@@ -185,52 +185,86 @@ export function PlayerManager({ players, teamId }: { players: Player[]; teamId: 
           </h2>
 
           <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">Jogador</th>
-                  <th className="px-4 py-3 text-left">Posição</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {players.map((player) => (
-                  <tr key={player.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
-                        <span className="font-medium text-slate-800">{player.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">{player.position}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(player)}
-                          className="rounded px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-                        >
-                          Editar
-                        </button>
-                        <form action={deletePlayerAction}>
-                          <input type="hidden" name="id" value={player.id} />
-                          <input type="hidden" name="teamId" value={teamId} />
-                          <button
-                            type="submit"
-                            className="rounded px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                            onClick={(e) => {
-                              if (!confirm(`Excluir "${player.name}"?`)) e.preventDefault()
-                            }}
-                          >
-                            Excluir
-                          </button>
-                        </form>
-                      </div>
-                    </td>
+            {/* Mobile: card list */}
+            <ul className="divide-y divide-slate-50 sm:hidden">
+              {players.map((player) => (
+                <li key={player.id} className="flex items-center gap-3 px-4 py-3">
+                  <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-slate-800">{player.name}</p>
+                    <p className="text-xs text-slate-500">{player.position}</p>
+                  </div>
+                  <div className="flex flex-shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(player)}
+                      className="rounded px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                    >
+                      Editar
+                    </button>
+                    <form action={deletePlayerAction}>
+                      <input type="hidden" name="id" value={player.id} />
+                      <input type="hidden" name="teamId" value={teamId} />
+                      <button
+                        type="submit"
+                        className="rounded px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                        onClick={(e) => { if (!confirm(`Excluir "${player.name}"?`)) e.preventDefault() }}
+                      >
+                        Excluir
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Jogador</th>
+                    <th className="px-4 py-3 text-left">Posição</th>
+                    <th className="px-4 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {players.map((player) => (
+                    <tr key={player.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
+                          <span className="font-medium text-slate-800">{player.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{player.position}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(player)}
+                            className="rounded px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                          >
+                            Editar
+                          </button>
+                          <form action={deletePlayerAction}>
+                            <input type="hidden" name="id" value={player.id} />
+                            <input type="hidden" name="teamId" value={teamId} />
+                            <button
+                              type="submit"
+                              className="rounded px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                              onClick={(e) => { if (!confirm(`Excluir "${player.name}"?`)) e.preventDefault() }}
+                            >
+                              Excluir
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

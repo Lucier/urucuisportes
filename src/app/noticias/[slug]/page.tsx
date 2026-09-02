@@ -58,9 +58,9 @@ export default async function NoticiaPage({ params }: PageProps) {
   const paragraphs = post.content.split(/\n+/).filter(Boolean)
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-10">
+    <article className="mx-auto max-w-3xl px-4 py-6 sm:py-10">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-gray-400">
+      <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-gray-400 sm:mb-6 sm:gap-2">
         <Link href="/" className="transition hover:text-emerald-600">
           Início
         </Link>
@@ -92,7 +92,7 @@ export default async function NoticiaPage({ params }: PageProps) {
       )}
 
       {/* Title */}
-      <h1 className="mt-4 text-3xl font-extrabold leading-tight text-slate-900 lg:text-4xl">
+      <h1 className="mt-4 text-2xl font-extrabold leading-tight text-slate-900 sm:text-3xl lg:text-4xl">
         {post.title}
       </h1>
 

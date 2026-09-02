@@ -1,10 +1,10 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { eq, asc } from 'drizzle-orm'
+import { eq, asc, inArray } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/database/client'
-import { leagues, rounds, matches, teams } from '@/database/schema'
+import { leagues, rounds, matches, teams, players, matchGoals } from '@/database/schema'
 import { RoundManager } from '@/components/admin/RoundManager'
 
 export const metadata = { title: 'Rodadas — Admin | Urucuí Esportes' }
@@ -145,10 +145,39 @@ export default async function AdminRodadasPage({ searchParams }: Props) {
     .where(eq(teams.leagueId, leagueId))
     .orderBy(asc(teams.grupo), asc(teams.name))
 
+  // Jogadores de todos os times da liga
+  const teamIds = teamRows.map((t) => t.id)
+  const playerRows = teamIds.length > 0
+    ? await db
+        .select({ id: players.id, name: players.name, teamId: players.teamId })
+        .from(players)
+        .where(inArray(players.teamId, teamIds))
+        .orderBy(asc(players.name))
+    : []
+
+  // Gols de todas as partidas da liga
+  const matchIds = matchRows.map((m) => m.id)
+  const goalRows = matchIds.length > 0
+    ? await db
+        .select({
+          matchId: matchGoals.matchId,
+          playerId: matchGoals.playerId,
+          teamId: matchGoals.teamId,
+          goals: matchGoals.goals,
+        })
+        .from(matchGoals)
+        .where(inArray(matchGoals.matchId, matchIds))
+    : []
+
   // Monta rodadas com confrontos aninhados
   const roundsWithMatches = roundRows.map((r) => ({
     ...r,
-    matches: matchRows.filter((m) => m.roundId === r.id),
+    matches: matchRows
+      .filter((m) => m.roundId === r.id)
+      .map((m) => ({
+        ...m,
+        goals: goalRows.filter((g) => g.matchId === m.id),
+      })),
   }))
 
   return (
@@ -190,6 +219,7 @@ export default async function AdminRodadasPage({ searchParams }: Props) {
         league={league}
         rounds={roundsWithMatches}
         teams={teamRows}
+        players={playerRows}
       />
     </div>
   )

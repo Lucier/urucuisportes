@@ -7,6 +7,7 @@ import {
   deleteRoundAction,
   createMatchAction,
   deleteMatchAction,
+  updateMatchScoreAction,
   type RoundFormState,
   type MatchFormState,
 } from '@/app/admin/rodadas/actions'
@@ -22,6 +23,19 @@ type Team = {
   grupo: number | null
 }
 
+type Player = {
+  id: string
+  name: string
+  teamId: string
+}
+
+type MatchGoal = {
+  matchId: string
+  playerId: string
+  teamId: string
+  goals: number
+}
+
 type MatchRow = {
   id: string
   roundId: string | null
@@ -35,6 +49,7 @@ type MatchRow = {
   awayScore: number | null
   status: string
   date: Date
+  goals: MatchGoal[]
 }
 
 type Round = {
@@ -55,7 +70,7 @@ type League = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function grupoLabel(n: number) {
-  return String.fromCharCode(64 + n) // 1→A, 2→B …
+  return String.fromCharCode(64 + n)
 }
 
 function formatDate(date: Date) {
@@ -115,6 +130,420 @@ function TeamAvatar({ name, logo }: { name: string | null; logo: string | null }
   )
 }
 
+// ─── MatchScoreModal ──────────────────────────────────────────────────────────
+
+type ScorerEntry = { playerId: string; teamId: string; goals: number }
+
+function GoalSelector({
+  label,
+  teamPlayers,
+  teamId,
+  scorers,
+  onAdd,
+  onRemove,
+  allPlayers,
+}: {
+  label: string
+  teamPlayers: Player[]
+  teamId: string
+  scorers: ScorerEntry[]
+  onAdd: (entry: ScorerEntry) => void
+  onRemove: (playerId: string) => void
+  allPlayers: Player[]
+}) {
+  const [selectedId, setSelectedId] = useState('')
+  const [qty, setQty] = useState(1)
+
+  const teamScorers = scorers.filter((s) => s.teamId === teamId)
+  const addedIds = new Set(teamScorers.map((s) => s.playerId))
+  const available = teamPlayers.filter((p) => !addedIds.has(p.id))
+
+  function handleAdd() {
+    if (!selectedId) return
+    onAdd({ playerId: selectedId, teamId, goals: qty })
+    setSelectedId('')
+    setQty(1)
+  }
+
+  return (
+    <div>
+      <p className="mb-2 truncate text-xs font-semibold text-slate-700">{label}</p>
+
+      {teamPlayers.length === 0 ? (
+        <p className="text-xs italic text-slate-400">
+          Nenhum jogador cadastrado.{' '}
+          <a href="/admin/jogadores" className="underline hover:text-slate-600">
+            Adicionar
+          </a>
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {/* Select + qty + botão */}
+          <div className="flex gap-1.5">
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            >
+              <option value="">Jogador…</option>
+              {available.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={qty}
+              onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
+              className="w-12 rounded-lg border border-slate-200 px-1 py-1.5 text-center text-xs font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!selectedId}
+              className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Chips dos artilheiros adicionados */}
+          {teamScorers.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {teamScorers.map((s) => {
+                const p = allPlayers.find((pl) => pl.id === s.playerId)
+                return (
+                  <li
+                    key={s.playerId}
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 pl-2.5 pr-1 py-0.5 text-xs font-medium text-emerald-800"
+                  >
+                    ⚽ {p?.name ?? '—'}{s.goals > 1 && ` (${s.goals})`}
+                    <button
+                      type="button"
+                      onClick={() => onRemove(s.playerId)}
+                      className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-100 hover:text-emerald-700"
+                      aria-label="Remover"
+                    >
+                      ×
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MatchScoreModal({
+  match,
+  players,
+  onClose,
+}: {
+  match: MatchRow
+  players: Player[]
+  onClose: () => void
+}) {
+  const [state, formAction] = useActionState(updateMatchScoreAction, {})
+
+  const [scorers, setScorers] = useState<ScorerEntry[]>(
+    match.goals.map((g) => ({ playerId: g.playerId, teamId: g.teamId, goals: g.goals })),
+  )
+
+  const homePlayers = players.filter((p) => p.teamId === match.homeTeamId)
+  const awayPlayers = players.filter((p) => p.teamId === match.awayTeamId)
+
+  function addScorer(entry: ScorerEntry) {
+    setScorers((prev) => {
+      const existing = prev.find((s) => s.playerId === entry.playerId)
+      if (existing) {
+        return prev.map((s) =>
+          s.playerId === entry.playerId ? { ...s, goals: s.goals + entry.goals } : s,
+        )
+      }
+      return [...prev, entry]
+    })
+  }
+
+  function removeScorer(playerId: string) {
+    setScorers((prev) => prev.filter((s) => s.playerId !== playerId))
+  }
+
+  const scoreInputCls =
+    'w-14 rounded-lg border border-slate-200 px-2 py-2 text-center text-lg font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="text-base font-bold text-slate-800">Editar placar</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form action={formAction}>
+          <input type="hidden" name="matchId" value={match.id} />
+
+          {/* Hidden inputs dos artilheiros para o server action */}
+          {scorers.map((s) => (
+            <input
+              key={s.playerId}
+              type="hidden"
+              name={`goal_${s.playerId}:${s.teamId}`}
+              value={s.goals}
+            />
+          ))}
+
+          <div className="max-h-[75vh] overflow-y-auto px-6 py-5 space-y-5">
+            {/* Placar */}
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Resultado</p>
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex flex-1 flex-col items-end gap-1">
+                  <TeamAvatar name={match.homeTeamName} logo={match.homeTeamLogo} />
+                  <span className="text-right text-sm font-semibold text-slate-700">
+                    {match.homeTeamName ?? '—'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    name="homeScore"
+                    type="number"
+                    min={0}
+                    max={99}
+                    defaultValue={match.homeScore ?? ''}
+                    placeholder="–"
+                    className={scoreInputCls}
+                  />
+                  <span className="font-bold text-slate-300">×</span>
+                  <input
+                    name="awayScore"
+                    type="number"
+                    min={0}
+                    max={99}
+                    defaultValue={match.awayScore ?? ''}
+                    placeholder="–"
+                    className={scoreInputCls}
+                  />
+                </div>
+
+                <div className="flex flex-1 flex-col items-start gap-1">
+                  <TeamAvatar name={match.awayTeamName} logo={match.awayTeamLogo} />
+                  <span className="text-sm font-semibold text-slate-700">
+                    {match.awayTeamName ?? '—'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="mt-3">
+                <label className="mb-1 block text-xs font-medium text-slate-600">Status</label>
+                <select name="status" defaultValue={match.status} className={selectCls}>
+                  <option value="SCHEDULED">Agendado</option>
+                  <option value="LIVE">Ao vivo</option>
+                  <option value="FINISHED">Encerrado</option>
+                  <option value="POSTPONED">Adiado</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Artilheiros via select */}
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Artilheiros
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <GoalSelector
+                  label={match.homeTeamName ?? 'Casa'}
+                  teamPlayers={homePlayers}
+                  teamId={match.homeTeamId}
+                  scorers={scorers}
+                  onAdd={addScorer}
+                  onRemove={removeScorer}
+                  allPlayers={players}
+                />
+                <GoalSelector
+                  label={match.awayTeamName ?? 'Visitante'}
+                  teamPlayers={awayPlayers}
+                  teamId={match.awayTeamId}
+                  scorers={scorers}
+                  onAdd={addScorer}
+                  onRemove={removeScorer}
+                  allPlayers={players}
+                />
+              </div>
+            </div>
+
+            {/* Feedback */}
+            {state.error && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+            )}
+            {state.success && (
+              <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{state.success}</p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <SaveBtn label="Salvar placar" />
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── MatchItem ────────────────────────────────────────────────────────────────
+
+function MatchItem({ match, players }: { match: MatchRow; players: Player[] }) {
+  const [modalOpen, setModalOpen] = useState(false)
+  const badge = STATUS_LABELS[match.status] ?? STATUS_LABELS.SCHEDULED
+
+  const homeScorers = match.goals
+    .filter((g) => g.teamId === match.homeTeamId && g.goals > 0)
+    .map((g) => {
+      const p = players.find((pl) => pl.id === g.playerId)
+      return p ? `${p.name}${g.goals > 1 ? ` (${g.goals})` : ''}` : null
+    })
+    .filter(Boolean) as string[]
+
+  const awayScorers = match.goals
+    .filter((g) => g.teamId === match.awayTeamId && g.goals > 0)
+    .map((g) => {
+      const p = players.find((pl) => pl.id === g.playerId)
+      return p ? `${p.name}${g.goals > 1 ? ` (${g.goals})` : ''}` : null
+    })
+    .filter(Boolean) as string[]
+
+  const hasScorers = homeScorers.length > 0 || awayScorers.length > 0
+
+  return (
+    <>
+      <li className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm">
+        {/* Linha principal: times + placar */}
+        <div className="flex items-center gap-2">
+          {/* Casa */}
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+            <span className="truncate text-right text-xs font-medium leading-tight text-slate-800 sm:text-sm">
+              {match.homeTeamName ?? '—'}
+            </span>
+            <TeamAvatar name={match.homeTeamName} logo={match.homeTeamLogo} />
+          </div>
+
+          {/* Placar / VS */}
+          <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+            {match.homeScore !== null && match.awayScore !== null ? (
+              <span className="font-bold text-slate-800 tabular-nums">
+                {match.homeScore} × {match.awayScore}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold text-slate-400">VS</span>
+            )}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
+              {badge.label}
+            </span>
+          </div>
+
+          {/* Visitante */}
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <TeamAvatar name={match.awayTeamName} logo={match.awayTeamLogo} />
+            <span className="truncate text-xs font-medium leading-tight text-slate-800 sm:text-sm">
+              {match.awayTeamName ?? '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* Artilheiros alinhados sob cada time */}
+        {hasScorers && (
+          <div className="mt-1 flex items-start gap-2">
+            <div className="flex min-w-0 flex-1 justify-end">
+              {homeScorers.length > 0 && (
+                <ul className="space-y-0.5 text-right">
+                  {homeScorers.map((name) => (
+                    <li key={name} className="text-[11px] text-slate-400">
+                      ⚽ {name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {/* Espaço central alinhado com o placar */}
+            <div className="flex-shrink-0 w-16" />
+            <div className="flex min-w-0 flex-1 justify-start">
+              {awayScorers.length > 0 && (
+                <ul className="space-y-0.5">
+                  {awayScorers.map((name) => (
+                    <li key={name} className="text-[11px] text-slate-400">
+                      ⚽ {name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Linha secundária: data + ações */}
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <span className="truncate text-[11px] text-slate-400">
+            {formatDate(match.date)}
+          </span>
+          <div className="flex flex-shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-white hover:text-emerald-700"
+              title="Editar placar e artilheiros"
+            >
+              Placar
+            </button>
+            <form action={deleteMatchAction}>
+              <input type="hidden" name="id" value={match.id} />
+              <button
+                type="submit"
+                className="rounded px-1.5 py-1 text-xs text-red-400 hover:bg-red-50"
+                onClick={(e) => { if (!confirm('Excluir confronto?')) e.preventDefault() }}
+              >
+                ✕
+              </button>
+            </form>
+          </div>
+        </div>
+      </li>
+
+      {modalOpen && (
+        <MatchScoreModal
+          match={match}
+          players={players}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </>
+  )
+}
+
 // ─── AddMatchForm ─────────────────────────────────────────────────────────────
 
 function AddMatchForm({
@@ -146,7 +575,6 @@ function AddMatchForm({
       <input type="hidden" name="leagueId" value={leagueId} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {/* Time da casa */}
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">
             Time da casa <span className="text-red-500">*</span>
@@ -165,7 +593,6 @@ function AddMatchForm({
           </select>
         </div>
 
-        {/* Time visitante */}
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">
             Time visitante <span className="text-red-500">*</span>
@@ -185,7 +612,6 @@ function AddMatchForm({
         </div>
       </div>
 
-      {/* Data e hora */}
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600">
           Data e hora <span className="text-red-500">*</span>
@@ -225,6 +651,7 @@ function RoundCard({
   round,
   leagueId,
   teams,
+  players,
   isAddingMatch,
   onToggleAdd,
   matchState,
@@ -233,6 +660,7 @@ function RoundCard({
   round: Round
   leagueId: string
   teams: Team[]
+  players: Player[]
   isAddingMatch: boolean
   onToggleAdd: () => void
   matchState: MatchFormState
@@ -254,9 +682,7 @@ function RoundCard({
           </span>
           <div>
             <p className="text-sm font-semibold text-slate-800">
-              {round.nome
-                ? round.nome
-                : `Rodada ${round.numero}`}
+              {round.nome ? round.nome : `Rodada ${round.numero}`}
             </p>
             <p className="text-xs text-slate-400">
               {round.matches.length} confronto{round.matches.length !== 1 ? 's' : ''}
@@ -302,64 +728,9 @@ function RoundCard({
             <p className="py-4 text-center text-xs text-slate-400">Nenhum confronto ainda.</p>
           ) : (
             <ul className="mt-3 space-y-2">
-              {round.matches.map((m) => {
-                const badge = STATUS_LABELS[m.status] ?? STATUS_LABELS.SCHEDULED
-                return (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm"
-                  >
-                    {/* Casa */}
-                    <div className="flex flex-1 items-center justify-end gap-1.5">
-                      <span className="font-medium text-slate-800 text-right leading-tight">
-                        {m.homeTeamName ?? '—'}
-                      </span>
-                      <TeamAvatar name={m.homeTeamName} logo={m.homeTeamLogo} />
-                    </div>
-
-                    {/* Placar / VS */}
-                    <div className="flex flex-col items-center gap-0.5">
-                      {m.homeScore !== null && m.awayScore !== null ? (
-                        <span className="font-bold text-slate-800 tabular-nums">
-                          {m.homeScore} × {m.awayScore}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-semibold text-slate-400">VS</span>
-                      )}
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
-                        {badge.label}
-                      </span>
-                    </div>
-
-                    {/* Visitante */}
-                    <div className="flex flex-1 items-center gap-1.5">
-                      <TeamAvatar name={m.awayTeamName} logo={m.awayTeamLogo} />
-                      <span className="font-medium text-slate-800 leading-tight">
-                        {m.awayTeamName ?? '—'}
-                      </span>
-                    </div>
-
-                    {/* Data */}
-                    <span className="hidden text-xs text-slate-400 sm:block whitespace-nowrap">
-                      {formatDate(m.date)}
-                    </span>
-
-                    {/* Excluir */}
-                    <form action={deleteMatchAction}>
-                      <input type="hidden" name="id" value={m.id} />
-                      <button
-                        type="submit"
-                        className="rounded px-1 py-0.5 text-xs text-red-400 hover:bg-red-50"
-                        onClick={(e) => {
-                          if (!confirm('Excluir confronto?')) e.preventDefault()
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </form>
-                  </li>
-                )
-              })}
+              {round.matches.map((m) => (
+                <MatchItem key={m.id} match={m} players={players} />
+              ))}
             </ul>
           )}
 
@@ -376,7 +747,7 @@ function RoundCard({
         </div>
       )}
 
-      {/* Form de confronto fora do expand (quando expanded=false mas isAddingMatch=true) */}
+      {/* Form de confronto fora do expand */}
       {!expanded && isAddingMatch && (
         <div className="border-t border-slate-50 px-5 pb-4">
           <AddMatchForm
@@ -477,6 +848,7 @@ function GroupSection({
   rounds,
   leagueId,
   teams,
+  players,
   activeMatchRound,
   onToggleMatch,
   matchState,
@@ -488,6 +860,7 @@ function GroupSection({
   rounds: Round[]
   leagueId: string
   teams: Team[]
+  players: Player[]
   activeMatchRound: string | null
   onToggleMatch: (id: string) => void
   matchState: MatchFormState
@@ -500,7 +873,6 @@ function GroupSection({
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm">
-      {/* Cabeçalho do grupo */}
       <div className="mb-4 flex items-center gap-3">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-600 text-sm font-bold text-white">
           {label}
@@ -516,7 +888,6 @@ function GroupSection({
         </div>
       </div>
 
-      {/* Rodadas do grupo */}
       <div className="space-y-3">
         {rounds.map((r) => (
           <RoundCard
@@ -524,6 +895,7 @@ function GroupSection({
             round={r}
             leagueId={leagueId}
             teams={teams}
+            players={players}
             isAddingMatch={activeMatchRound === r.id}
             onToggleAdd={() => onToggleMatch(r.id)}
             matchState={matchState}
@@ -548,10 +920,12 @@ export function RoundManager({
   league,
   rounds,
   teams,
+  players,
 }: {
   league: League
   rounds: Round[]
   teams: Team[]
+  players: Player[]
 }) {
   const [roundState, roundAction] = useActionState(createRoundAction, {})
   const [matchState, matchAction] = useActionState(createMatchAction, {})
@@ -563,7 +937,6 @@ export function RoundManager({
 
   const isGrupos = league.tipo === 'grupos'
 
-  // ── Pontos corridos ────────────────────────────────────────────────────
   if (!isGrupos) {
     return (
       <div className="space-y-4">
@@ -573,6 +946,7 @@ export function RoundManager({
             round={r}
             leagueId={league.id}
             teams={teams}
+            players={players}
             isAddingMatch={activeMatchRound === r.id}
             onToggleAdd={() => toggleMatch(r.id)}
             matchState={matchState}
@@ -600,7 +974,6 @@ export function RoundManager({
     )
   }
 
-  // ── Por grupos ─────────────────────────────────────────────────────────
   const numGrupos = league.numeroGrupos ?? 0
   const grupos = Array.from({ length: numGrupos }, (_, i) => i + 1)
 
@@ -615,6 +988,7 @@ export function RoundManager({
             rounds={grupoRounds}
             leagueId={league.id}
             teams={teams}
+            players={players}
             activeMatchRound={activeMatchRound}
             onToggleMatch={toggleMatch}
             matchState={matchState}

@@ -28,8 +28,8 @@ export async function StandingsWidget() {
 
   return (
     <section>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Classificação</h2>
+      <div className="mb-4 flex items-center justify-between sm:mb-6">
+        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Classificação</h2>
         <Link
           href="/classificacao/brasileirao-serie-a"
           className="text-sm font-medium text-emerald-600 hover:underline"
