@@ -5,7 +5,7 @@ import { AUTH_COOKIE } from '@/lib/auth'
 
 const PUBLIC_API_ROUTES = ['/api/auth/login', '/api/auth/register']
 const ADMIN_ROUTES = ['/api/admin', '/admin']
-const PROTECTED_ROUTES = ['/dashboard', '/api/auth/me', '/api/auth/logout']
+const PROTECTED_ROUTES = ['/api/auth/me', '/api/auth/logout']
 
 function matchesRoutes(pathname: string, routes: string[]): boolean {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/login', request.url))
     }
 
     const response = NextResponse.next()

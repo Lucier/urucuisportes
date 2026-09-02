@@ -33,7 +33,7 @@ export default function LoginPage() {
       }
 
       const { user } = await res.json()
-      router.push(user.role === 'ADMIN' ? '/admin' : '/dashboard')
+      router.push('/admin/dashboard')
       router.refresh()
     } catch {
       setError('Erro de conexão. Tente novamente.')
