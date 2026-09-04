@@ -130,7 +130,7 @@ export async function NewsHighlights() {
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wide text-slate-700">Jogos</h3>
             <Link
-              href="/estatisticas/seria-a?aba=calendario"
+              href="/estatisticas"
               className="text-xs font-medium text-emerald-600 hover:underline"
             >
               Ver mais →

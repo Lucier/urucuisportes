@@ -5,7 +5,6 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/database/client'
 import { posts, categories, users } from '@/database/schema'
 import { formatDateTime } from '@/shared/utils'
-import { CommentsSection } from '@/components/news/CommentsSection'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -157,8 +156,6 @@ export default async function NoticiaPage({ params }: PageProps) {
         )}
       </div>
 
-      {/* Comments */}
-      <CommentsSection postId={post.id} />
     </article>
   )
 }

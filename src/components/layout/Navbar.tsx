@@ -8,8 +8,8 @@ const navLinks = [
   { label: 'Notícias', href: '/noticias' },
   { label: 'Fotos', href: '/fotos' },
   { label: 'Ao Vivo', href: '/transmissoes' },
-  { label: 'Jogos', href: '/jogos' },
-  { label: 'Classificação', href: '/classificacao' },
+  { label: 'Jogos', href: '/estatisticas' },
+  { label: 'Classificação', href: '/estatisticas' },
 ]
 
 export function Navbar() {
