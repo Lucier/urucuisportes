@@ -6,6 +6,7 @@ import { db } from '@/database/client'
 import { leagues, teams } from '@/database/schema'
 import { LeagueManager } from '@/components/admin/LeagueManager'
 import { LeagueTeamsPanel } from '@/components/admin/LeagueTeamsPanel'
+import { SafeImage } from '@/components/ui/SafeImage'
 
 export const metadata = { title: 'Ligas — Admin | Urucuí Esportes' }
 
@@ -58,15 +59,18 @@ export default async function AdminLigasPage({ searchParams }: Props) {
           </Link>
 
           <div className="flex items-center gap-3">
-            {league.logoUrl ? (
-              <img
-                src={league.logoUrl}
-                alt={league.name}
-                className="h-10 w-10 rounded-lg border border-slate-100 object-contain bg-slate-50 p-0.5"
-              />
-            ) : (
-              <span className="text-3xl">🏆</span>
-            )}
+            <div className="relative h-10 w-10">
+              <div className="flex h-full w-full items-center justify-center rounded-lg bg-emerald-100 text-xl">
+                🏆
+              </div>
+              {league.logoUrl && (
+                <SafeImage
+                  src={league.logoUrl}
+                  alt={league.name}
+                  className="absolute inset-0 h-full w-full rounded-lg border border-slate-100 object-contain bg-slate-50 p-0.5"
+                />
+              )}
+            </div>
             <div>
               <h1 className="text-3xl font-extrabold text-slate-900">{league.name}</h1>
               <p className="mt-0.5 text-sm text-slate-500">Gerencie os times desta liga</p>

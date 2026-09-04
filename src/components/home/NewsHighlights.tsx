@@ -5,6 +5,7 @@ import { posts, categories, users } from '@/database/schema'
 import { NewsCarousel } from './NewsCarousel'
 import { SerieAStatsCard } from './SerieAStatsCard'
 import { MatchesCard } from './MatchesCard'
+import { SafeImage } from '@/components/ui/SafeImage'
 import { formatDate } from '@/shared/utils'
 
 export async function NewsHighlights() {
@@ -85,15 +86,15 @@ export async function NewsHighlights() {
                   className="group flex gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition-colors hover:border-emerald-200 hover:bg-slate-50"
                 >
                   {/* Thumbnail */}
-                  {post.imageUrl ? (
-                    <img
-                      src={post.imageUrl}
-                      alt={post.title}
-                      className="h-16 w-16 flex-shrink-0 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="h-16 w-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-emerald-700 to-slate-800" />
-                  )}
+                  <div className="relative h-16 w-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-emerald-700 to-slate-800">
+                    {post.imageUrl && (
+                      <SafeImage
+                        src={post.imageUrl}
+                        alt={post.title}
+                        className="absolute inset-0 h-full w-full rounded-lg object-cover"
+                      />
+                    )}
+                  </div>
 
                   <div className="flex min-w-0 flex-col justify-between">
                     <h4 className="line-clamp-3 text-sm font-semibold leading-snug text-slate-800 transition-colors group-hover:text-emerald-700">

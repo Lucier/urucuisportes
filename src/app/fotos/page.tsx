@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { desc } from 'drizzle-orm'
 import { db } from '@/database/client'
 import { photoAlbums } from '@/database/schema'
+import { SafeImage } from '@/components/ui/SafeImage'
 import { formatDate } from '@/shared/utils'
 
 export const metadata: Metadata = {
@@ -40,28 +41,29 @@ export default async function FotosPage() {
             >
               {/* Capa */}
               <div className="relative h-52 overflow-hidden bg-gradient-to-br from-emerald-800 to-slate-900">
-                {album.coverUrl ? (
-                  <img
+                {/* Ícone de câmera sempre visível como fallback */}
+                <div className="flex h-full items-center justify-center">
+                  <svg
+                    className="h-16 w-16 text-white/20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                {/* Imagem sobreposta ao fallback */}
+                {album.coverUrl && (
+                  <SafeImage
                     src={album.coverUrl}
                     alt={album.title}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <svg
-                      className="h-16 w-16 text-white/20"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
                 )}
 
                 {/* Badge "Abrir galeria" */}

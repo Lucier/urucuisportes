@@ -44,18 +44,19 @@ function SubmitButton({ editing }: { editing: boolean }) {
 }
 
 function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
-  if (photoUrl) {
-    return (
-      <img
-        src={photoUrl}
-        alt={name}
-        className="h-10 w-10 flex-shrink-0 rounded-full border border-slate-100 object-cover bg-slate-50"
-      />
-    )
-  }
   return (
-    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
-      {name.charAt(0).toUpperCase()}
+    <div className="relative h-10 w-10 flex-shrink-0">
+      <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
+        {name.charAt(0).toUpperCase()}
+      </div>
+      {photoUrl && (
+        <img
+          src={photoUrl}
+          alt={name}
+          className="absolute inset-0 h-full w-full rounded-full border border-slate-100 object-cover bg-slate-50"
+          onError={(e) => { e.currentTarget.style.display = 'none' }}
+        />
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/database/client'
 import { leagues, rounds, matches, teams, players, matchGoals } from '@/database/schema'
 import { RoundManager } from '@/components/admin/RoundManager'
+import { SafeImage } from '@/components/ui/SafeImage'
 
 export const metadata = { title: 'Rodadas — Admin | Urucuí Esportes' }
 
@@ -57,17 +58,18 @@ export default async function AdminRodadasPage({ searchParams }: Props) {
                 href={`/admin/rodadas?liga=${league.id}`}
                 className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
               >
-                {league.logoUrl ? (
-                  <img
-                    src={league.logoUrl}
-                    alt={league.name}
-                    className="h-12 w-12 flex-shrink-0 rounded-xl border border-slate-100 object-contain bg-slate-50 p-0.5"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-2xl">
+                <div className="relative h-12 w-12 flex-shrink-0">
+                  <div className="flex h-full w-full items-center justify-center rounded-xl bg-emerald-100 text-2xl">
                     🏆
                   </div>
-                )}
+                  {league.logoUrl && (
+                    <SafeImage
+                      src={league.logoUrl}
+                      alt={league.name}
+                      className="absolute inset-0 h-full w-full rounded-xl border border-slate-100 object-contain bg-slate-50 p-0.5"
+                    />
+                  )}
+                </div>
                 <div>
                   <p className="font-semibold text-slate-800">{league.name}</p>
                   <p className="mt-0.5 text-xs text-slate-400">
@@ -195,15 +197,18 @@ export default async function AdminRodadasPage({ searchParams }: Props) {
         </Link>
 
         <div className="flex items-center gap-3">
-          {league.logoUrl ? (
-            <img
-              src={league.logoUrl}
-              alt={league.name}
-              className="h-10 w-10 rounded-xl border border-slate-100 object-contain bg-slate-50 p-0.5"
-            />
-          ) : (
-            <span className="text-3xl">🏆</span>
-          )}
+          <div className="relative h-10 w-10">
+            <div className="flex h-full w-full items-center justify-center rounded-xl bg-emerald-100 text-2xl">
+              🏆
+            </div>
+            {league.logoUrl && (
+              <SafeImage
+                src={league.logoUrl}
+                alt={league.name}
+                className="absolute inset-0 h-full w-full rounded-xl border border-slate-100 object-contain bg-slate-50 p-0.5"
+              />
+            )}
+          </div>
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900">{league.name}</h1>
             <p className="mt-0.5 text-sm text-slate-500">

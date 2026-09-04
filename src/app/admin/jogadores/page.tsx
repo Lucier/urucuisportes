@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/database/client'
 import { teams, players } from '@/database/schema'
 import { PlayerManager } from '@/components/admin/PlayerManager'
+import { SafeImage } from '@/components/ui/SafeImage'
 
 export const metadata = { title: 'Jogadores — Admin | Urucuí Esportes' }
 
@@ -54,17 +55,18 @@ export default async function AdminJogadoresPage({ searchParams }: Props) {
           </Link>
 
           <div className="flex items-center gap-3">
-            {team.logoUrl ? (
-              <img
-                src={team.logoUrl}
-                alt={team.name}
-                className="h-10 w-10 rounded-full border border-slate-100 object-contain bg-slate-50"
-              />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
+            <div className="relative h-10 w-10">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
                 {team.name.charAt(0)}
               </div>
-            )}
+              {team.logoUrl && (
+                <SafeImage
+                  src={team.logoUrl}
+                  alt={team.name}
+                  className="absolute inset-0 h-full w-full rounded-full border border-slate-100 object-contain bg-slate-50"
+                />
+              )}
+            </div>
             <div>
               <h1 className="text-3xl font-extrabold text-slate-900">{team.name}</h1>
               <p className="mt-0.5 text-sm text-slate-500">Gerencie o elenco do time</p>
@@ -108,17 +110,18 @@ export default async function AdminJogadoresPage({ searchParams }: Props) {
               href={`/admin/jogadores?time=${team.id}`}
               className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50"
             >
-              {team.logoUrl ? (
-                <img
-                  src={team.logoUrl}
-                  alt={team.name}
-                  className="h-12 w-12 flex-shrink-0 rounded-full border border-slate-100 object-contain bg-slate-50"
-                />
-              ) : (
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">
+              <div className="relative h-12 w-12 flex-shrink-0">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">
                   {team.name.charAt(0)}
                 </div>
-              )}
+                {team.logoUrl && (
+                  <SafeImage
+                    src={team.logoUrl}
+                    alt={team.name}
+                    className="absolute inset-0 h-full w-full rounded-full border border-slate-100 object-contain bg-slate-50"
+                  />
+                )}
+              </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold text-slate-800">{team.name}</p>
                 <p className="mt-0.5 text-xs text-slate-400">Ver elenco →</p>

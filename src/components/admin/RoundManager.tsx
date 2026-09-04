@@ -114,18 +114,19 @@ function SaveBtn({ label }: { label: string }) {
 // ─── TeamAvatar ───────────────────────────────────────────────────────────────
 
 function TeamAvatar({ name, logo }: { name: string | null; logo: string | null }) {
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt={name ?? ''}
-        className="h-6 w-6 flex-shrink-0 rounded-full border border-slate-100 object-contain bg-slate-50"
-      />
-    )
-  }
   return (
-    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
-      {(name ?? '?').charAt(0)}
+    <div className="relative h-6 w-6 flex-shrink-0">
+      <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
+        {(name ?? '?').charAt(0)}
+      </div>
+      {logo && (
+        <img
+          src={logo}
+          alt={name ?? ''}
+          className="absolute inset-0 h-full w-full rounded-full border border-slate-100 object-contain bg-slate-50"
+          onError={(e) => { e.currentTarget.style.display = 'none' }}
+        />
+      )}
     </div>
   )
 }

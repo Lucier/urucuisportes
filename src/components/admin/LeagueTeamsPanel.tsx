@@ -23,22 +23,23 @@ function buildGrupoOptions(numeroGrupos: number) {
 }
 
 function Avatar({ name, logoUrl, inLeague }: { name: string; logoUrl: string | null; inLeague: boolean }) {
-  if (logoUrl) {
-    return (
-      <img
-        src={logoUrl}
-        alt={name}
-        className="h-8 w-8 flex-shrink-0 rounded-full border border-slate-100 object-contain bg-slate-50"
-      />
-    )
-  }
   return (
-    <div
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-        inLeague ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-      }`}
-    >
-      {name.charAt(0)}
+    <div className="relative h-8 w-8 flex-shrink-0">
+      <div
+        className={`flex h-full w-full items-center justify-center rounded-full text-sm font-bold ${
+          inLeague ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+        }`}
+      >
+        {name.charAt(0)}
+      </div>
+      {logoUrl && (
+        <img
+          src={logoUrl}
+          alt={name}
+          className="absolute inset-0 h-full w-full rounded-full border border-slate-100 object-contain bg-slate-50"
+          onError={(e) => { e.currentTarget.style.display = 'none' }}
+        />
+      )}
     </div>
   )
 }

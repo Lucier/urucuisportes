@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { eq } from 'drizzle-orm'
 import { db } from '@/database/client'
 import { posts, categories, users } from '@/database/schema'
+import { SafeImage } from '@/components/ui/SafeImage'
 import { formatDateTime } from '@/shared/utils'
 
 interface PageProps {
@@ -114,15 +115,13 @@ export default async function NoticiaPage({ params }: PageProps) {
       </div>
 
       {/* Hero image */}
-      <div className="mt-8 overflow-hidden rounded-2xl">
-        {post.imageUrl ? (
-          <img
+      <div className="relative mt-8 h-64 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-800 via-slate-800 to-slate-900 lg:h-80">
+        {post.imageUrl && (
+          <SafeImage
             src={post.imageUrl}
             alt={post.title}
-            className="w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-        ) : (
-          <div className="h-64 w-full bg-gradient-to-br from-emerald-800 via-slate-800 to-slate-900 lg:h-80" />
         )}
       </div>
 

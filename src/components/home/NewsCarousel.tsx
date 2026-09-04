@@ -55,15 +55,15 @@ export function NewsCarousel({ posts }: Props) {
               i === current ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            {/* Fundo: imagem ou gradiente */}
-            {p.imageUrl ? (
+            {/* Fundo: gradiente sempre visível + imagem sobreposta */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-slate-800 to-slate-900" />
+            {p.imageUrl && (
               <img
                 src={p.imageUrl}
                 alt={p.title}
                 className="absolute inset-0 h-full w-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-slate-800 to-slate-900" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
 

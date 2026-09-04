@@ -40,18 +40,19 @@ function SubmitButton({ editing }: { editing: boolean }) {
 }
 
 function LeagueBadge({ name, logoUrl }: { name: string; logoUrl: string | null }) {
-  if (logoUrl) {
-    return (
-      <img
-        src={logoUrl}
-        alt={name}
-        className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-100 object-contain bg-slate-50 p-0.5"
-      />
-    )
-  }
   return (
-    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-lg font-bold text-emerald-700">
-      🏆
+    <div className="relative h-10 w-10 flex-shrink-0">
+      <div className="flex h-full w-full items-center justify-center rounded-lg bg-emerald-100 text-lg font-bold text-emerald-700">
+        🏆
+      </div>
+      {logoUrl && (
+        <img
+          src={logoUrl}
+          alt={name}
+          className="absolute inset-0 h-full w-full rounded-lg border border-slate-100 object-contain bg-slate-50 p-0.5"
+          onError={(e) => { e.currentTarget.style.display = 'none' }}
+        />
+      )}
     </div>
   )
 }

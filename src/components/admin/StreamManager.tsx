@@ -203,7 +203,12 @@ export function StreamManager({ streams }: { streams: Stream[] }) {
                   {/* Thumbnail */}
                   <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-slate-900">
                     {thumb && (
-                      <img src={thumb} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={thumb}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
+                      />
                     )}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <svg className="h-6 w-6 text-white/50" fill="currentColor" viewBox="0 0 24 24">
