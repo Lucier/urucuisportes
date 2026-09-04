@@ -9,17 +9,14 @@ const sections = [
       { label: 'Fotos', href: '/fotos' },
       { label: 'Ao Vivo', href: '/transmissoes' },
       { label: 'Jogos', href: '/jogos' },
-      { label: 'Classificação', href: '/classificacao' },
     ],
   },
-  {
-    title: 'Ligas',
-    links: [
-      { label: 'Brasileirão Série A', href: '/classificacao/brasileirao-serie-a' },
-      { label: 'Brasileirão Série B', href: '/classificacao/brasileirao-serie-b' },
-      { label: 'Libertadores', href: '/classificacao/libertadores' },
-    ],
-  },
+]
+
+const leagueLinks = [
+  { label: 'Uruçuiense Série A', href: '/estatisticas/seria-a' },
+  { label: 'Uruçuiense Série B', href: '/estatisticas/serie-b' },
+  { label: 'Veteranos', href: '/estatisticas/veteranos' },
 ]
 
 export function Footer() {
@@ -35,12 +32,12 @@ export function Footer() {
                 ⚽
               </span>
               <span className="text-lg font-bold text-white">
-                Urucuí <span className="text-emerald-400">Esportes</span>
+                Uruçuí <span className="text-emerald-400">Sports</span>
               </span>
             </div>
             <p className="text-sm leading-relaxed text-gray-500">
-              Seu portal completo de notícias, resultados e classificações do futebol brasileiro e
-              sul-americano.
+              Seu portal completo de notícias, resultados e classificações do futebol e demais esportes
+              uruçuiense.
             </p>
           </div>
 
@@ -63,10 +60,25 @@ export function Footer() {
               </ul>
             </div>
           ))}
+
+          <div>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
+              Ligas
+            </h3>
+            <ul className="space-y-2">
+              {leagueLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-sm transition-colors hover:text-emerald-400">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <div className="col-span-2 mt-8 border-t border-slate-800 pt-6 text-center text-xs text-gray-600 sm:col-span-1 sm:mt-10">
-          © {year} Urucuí Esportes. Todos os direitos reservados.
+          © {year} Uruçuí Sports. Todos os direitos reservados.
         </div>
       </div>
     </footer>

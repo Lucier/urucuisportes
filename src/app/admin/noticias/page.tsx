@@ -1,12 +1,10 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { eq, desc } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/database/client'
-import { categories, posts, matches, teams } from '@/database/schema'
+import { categories, posts } from '@/database/schema'
 import Link from 'next/link'
 import { PostFormSection } from '@/components/admin/PostFormSection'
-import { MatchEditorSection } from '@/components/admin/MatchEditorSection'
 
 export const metadata = { title: 'Notícias | Admin | Urucuí Esportes' }
 
@@ -17,10 +15,7 @@ export default async function AdminNoticiasPage() {
 
   if (!userId || userRole !== 'ADMIN') redirect('/login')
 
-  const homeTeam = alias(teams, 'home_team')
-  const awayTeam = alias(teams, 'away_team')
-
-  const [categoryRows, postRows, matchRows] = await Promise.all([
+  const [categoryRows, postRows] = await Promise.all([
     db.select({ id: categories.id, name: categories.name }).from(categories),
 
     db
@@ -38,23 +33,6 @@ export default async function AdminNoticiasPage() {
       .from(posts)
       .leftJoin(categories, eq(posts.categoryId, categories.id))
       .orderBy(desc(posts.createdAt)),
-
-    db
-      .select({
-        id: matches.id,
-        homeTeamId: matches.homeTeamId,
-        awayTeamId: matches.awayTeamId,
-        homeTeamName: homeTeam.name,
-        awayTeamName: awayTeam.name,
-        homeScore: matches.homeScore,
-        awayScore: matches.awayScore,
-        status: matches.status,
-        date: matches.date,
-      })
-      .from(matches)
-      .leftJoin(homeTeam, eq(matches.homeTeamId, homeTeam.id))
-      .leftJoin(awayTeam, eq(matches.awayTeamId, awayTeam.id))
-      .orderBy(desc(matches.date)),
   ])
 
   return (
@@ -129,7 +107,6 @@ export default async function AdminNoticiasPage() {
 
       <div className="space-y-12">
         <PostFormSection categories={categoryRows} initialPosts={postRows} adminId={userId} />
-        <MatchEditorSection matches={matchRows} />
       </div>
     </div>
   )

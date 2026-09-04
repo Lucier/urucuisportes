@@ -10,7 +10,6 @@ const navLinks = [
   { label: 'Fotos', href: '/fotos' },
   { label: 'Ao Vivo', href: '/transmissoes' },
   { label: 'Jogos', href: '/estatisticas' },
-  { label: 'Classificação', href: '/estatisticas' },
 ]
 
 export function Navbar() {
@@ -28,7 +27,7 @@ export function Navbar() {
               ⚽
             </span>
             <span>
-              Urucuí <span className="text-emerald-400">Esportes</span>
+              Uruçuí <span className="text-emerald-400">Sports</span>
             </span>
           </Link>
 
