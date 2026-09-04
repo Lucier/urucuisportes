@@ -32,6 +32,7 @@ const postSchema = z.object({
   content: z.string().min(10),
   categoryId: z.string().uuid(),
   imageUrl: z.string().url().optional().or(z.literal('')),
+  relevancia: z.coerce.number().int().min(0).max(5),
 })
 
 const matchSchema = z.object({
@@ -67,6 +68,7 @@ export async function upsertPostAction(
     content: formData.get('content'),
     categoryId: formData.get('categoryId'),
     imageUrl: formData.get('imageUrl') || '',
+    relevancia: formData.get('relevancia') ?? '1',
   }
 
   const parsed = postSchema.safeParse(raw)
@@ -75,7 +77,7 @@ export async function upsertPostAction(
     return { error: msg }
   }
 
-  const { title, slug, content, categoryId, imageUrl } = parsed.data
+  const { title, slug, content, categoryId, imageUrl, relevancia } = parsed.data
   const id = formData.get('id') as string | null
   const currentUser = await requireRole(UserRole.ADMIN)
 
@@ -83,7 +85,7 @@ export async function upsertPostAction(
     if (id) {
       await db
         .update(posts)
-        .set({ title, slug, content, categoryId, imageUrl: imageUrl || null })
+        .set({ title, slug, content, categoryId, imageUrl: imageUrl || null, relevancia })
         .where(eq(posts.id, id))
     } else {
       await db.insert(posts).values({
@@ -92,6 +94,7 @@ export async function upsertPostAction(
         content,
         categoryId,
         imageUrl: imageUrl || null,
+        relevancia,
         authorId: currentUser.userId,
       })
     }

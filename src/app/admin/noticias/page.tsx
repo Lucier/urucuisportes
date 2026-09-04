@@ -32,6 +32,7 @@ export default async function AdminNoticiasPage() {
         imageUrl: posts.imageUrl,
         categoryId: posts.categoryId,
         categoryName: categories.name,
+        relevancia: posts.relevancia,
         createdAt: posts.createdAt,
       })
       .from(posts)

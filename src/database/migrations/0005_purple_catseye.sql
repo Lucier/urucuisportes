@@ -1,0 +1,1 @@
+ALTER TABLE "posts" ADD COLUMN "relevancia" integer DEFAULT 1 NOT NULL;

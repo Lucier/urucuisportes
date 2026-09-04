@@ -14,6 +14,7 @@ type Post = {
   imageUrl: string | null
   categoryId: string | null
   categoryName: string | null
+  relevancia: number
   createdAt: Date
 }
 
@@ -116,7 +117,7 @@ export function PostFormSection({ categories, initialPosts, adminId }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Categoria</label>
               <select
@@ -148,6 +149,25 @@ export function PostFormSection({ categories, initialPosts, adminId }: Props) {
                 className={inputCls}
                 placeholder="https://..."
               />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Relevância no carrocel
+              </label>
+              <select
+                name="relevancia"
+                required
+                defaultValue={editingPost?.relevancia ?? 1}
+                key={(editingPost?.id ?? 'new') + '-rel'}
+                className={inputCls}
+              >
+                <option value={1}>1 — Mais relevante</option>
+                <option value={2}>2 — Alta</option>
+                <option value={3}>3 — Média</option>
+                <option value={4}>4 — Baixa</option>
+                <option value={5}>5 — Menos relevante</option>
+                <option value={0}>0 — Fora do carrocel</option>
+              </select>
             </div>
           </div>
 
@@ -199,7 +219,8 @@ export function PostFormSection({ categories, initialPosts, adminId }: Props) {
               <li key={post.id} className="px-4 py-3">
                 <p className="font-medium text-slate-800 leading-snug">{post.title}</p>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  {post.categoryName ?? '—'} · {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                  {post.categoryName ?? '—'} · {new Date(post.createdAt).toLocaleDateString('pt-BR')} · Relevância:{' '}
+                  {post.relevancia === 0 ? 'Fora do carrocel' : post.relevancia}
                 </p>
                 <div className="mt-2 flex gap-2">
                   <button
@@ -231,6 +252,7 @@ export function PostFormSection({ categories, initialPosts, adminId }: Props) {
                 <tr>
                   <th className="px-4 py-3 text-left">Título</th>
                   <th className="px-4 py-3 text-left">Categoria</th>
+                  <th className="px-4 py-3 text-center">Relevância</th>
                   <th className="px-4 py-3 text-left">Data</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -240,6 +262,17 @@ export function PostFormSection({ categories, initialPosts, adminId }: Props) {
                   <tr key={post.id} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3 font-medium text-slate-800">{post.title}</td>
                     <td className="px-4 py-3 text-slate-500">{post.categoryName ?? '—'}</td>
+                    <td className="px-4 py-3 text-center">
+                      {post.relevancia === 0 ? (
+                        <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                          Fora
+                        </span>
+                      ) : (
+                        <span className="inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                          {post.relevancia}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-400">
                       {new Date(post.createdAt).toLocaleDateString('pt-BR')}
                     </td>
