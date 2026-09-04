@@ -50,6 +50,7 @@ type MatchRow = {
   awayScore: number | null
   status: string
   date: Date
+  streamUrl: string | null
   goals: MatchGoal[]
 }
 
@@ -362,6 +363,21 @@ function MatchScoreModal({
                   <option value="POSTPONED">Adiado</option>
                 </select>
               </div>
+
+              {/* Link de transmissão */}
+              <div className="mt-3">
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Link de transmissão
+                  <span className="ml-1 font-normal text-slate-400">(opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  name="streamUrl"
+                  defaultValue={match.streamUrl ?? ''}
+                  placeholder="https://..."
+                  className={inputCls}
+                />
+              </div>
             </div>
 
             {/* Artilheiros via select */}
@@ -507,11 +523,23 @@ function MatchItem({ match, players }: { match: MatchRow; players: Player[] }) {
           </div>
         )}
 
-        {/* Linha secundária: data + ações */}
+        {/* Linha secundária: data + transmissão + ações */}
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="truncate text-[11px] text-slate-400">
-            {formatDate(match.date)}
-          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-[11px] text-slate-400">
+              {formatDate(match.date)}
+            </span>
+            {match.streamUrl && (
+              <a
+                href={match.streamUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate text-[11px] font-medium text-sky-600 hover:underline"
+              >
+                📺 Assistir transmissão
+              </a>
+            )}
+          </div>
           <div className="flex flex-shrink-0 items-center gap-1.5">
             <button
               type="button"
@@ -622,6 +650,19 @@ function AddMatchForm({
           type="datetime-local"
           name="date"
           required
+          className={inputCls}
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">
+          Link de transmissão
+          <span className="ml-1 font-normal text-slate-400">(opcional)</span>
+        </label>
+        <input
+          type="url"
+          name="streamUrl"
+          placeholder="https://..."
           className={inputCls}
         />
       </div>

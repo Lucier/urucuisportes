@@ -13,16 +13,24 @@ type MatchRow = {
   status: 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'POSTPONED'
   date: Date
   leagueName: string | null
+  streamUrl: string | null
 }
 
 function MatchItem({ match }: { match: MatchRow }) {
   const isLive = match.status === 'LIVE'
+  const isClickable = isLive && !!match.streamUrl
+  const Tag = isClickable ? 'a' : 'div'
+  const linkProps = isClickable
+    ? { href: match.streamUrl!, target: '_blank', rel: 'noopener noreferrer' }
+    : {}
 
   return (
-    <div
+    <Tag
+      {...linkProps}
       className={cn(
-        'rounded-lg border px-3 py-2',
+        'block rounded-lg border px-3 py-2',
         isLive ? 'border-red-200 bg-red-50/40' : 'border-slate-100 bg-white',
+        isClickable && 'cursor-pointer transition hover:border-red-400 hover:shadow-sm',
       )}
     >
       {/* Nome da liga */}
@@ -74,7 +82,7 @@ function MatchItem({ match }: { match: MatchRow }) {
           {match.awayTeamName}
         </span>
       </div>
-    </div>
+    </Tag>
   )
 }
 
@@ -94,6 +102,7 @@ export async function MatchesCard() {
         status: matches.status,
         date: matches.date,
         leagueName: leagues.name,
+        streamUrl: matches.streamUrl,
       })
       .from(matches)
       .leftJoin(homeAlias, eq(matches.homeTeamId, homeAlias.id))
@@ -113,6 +122,7 @@ export async function MatchesCard() {
         status: matches.status,
         date: matches.date,
         leagueName: leagues.name,
+        streamUrl: matches.streamUrl,
       })
       .from(matches)
       .leftJoin(homeAlias, eq(matches.homeTeamId, homeAlias.id))

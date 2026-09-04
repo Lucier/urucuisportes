@@ -133,6 +133,7 @@ export default async function AdminRodadasPage({ searchParams }: Props) {
       awayScore: matches.awayScore,
       status: matches.status,
       date: matches.date,
+      streamUrl: matches.streamUrl,
     })
     .from(matches)
     .leftJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))

@@ -160,6 +160,7 @@ export const matches = pgTable(
     awayScore: integer('away_score'),
     status: matchStatusEnum('status').default('SCHEDULED').notNull(),
     date: timestamp('date', { withTimezone: true }).notNull(),
+    streamUrl: text('stream_url'),
     leagueId: uuid('league_id').references(() => leagues.id),
     roundId: uuid('round_id').references(() => rounds.id, { onDelete: 'set null' }),
   },

@@ -90,6 +90,7 @@ const matchSchema = z
     homeTeamId: z.string().uuid('Time da casa inválido.'),
     awayTeamId: z.string().uuid('Time visitante inválido.'),
     date: z.string().min(1, 'Data obrigatória.'),
+    streamUrl: z.string().url('URL de transmissão inválida.').optional().or(z.literal('')),
   })
   .refine((d) => d.homeTeamId !== d.awayTeamId, {
     message: 'Time da casa e visitante devem ser diferentes.',
@@ -112,13 +113,14 @@ export async function createMatchAction(
     homeTeamId: formData.get('homeTeamId'),
     awayTeamId: formData.get('awayTeamId'),
     date: formData.get('date'),
+    streamUrl: formData.get('streamUrl') || '',
   })
 
   if (!parsed.success) {
     return { error: parsed.error.errors.map((e) => e.message).join(', ') }
   }
 
-  const { roundId, leagueId, homeTeamId, awayTeamId, date } = parsed.data
+  const { roundId, leagueId, homeTeamId, awayTeamId, date, streamUrl } = parsed.data
 
   try {
     await db.insert(matches).values({
@@ -128,6 +130,7 @@ export async function createMatchAction(
       awayTeamId,
       date: new Date(date),
       status: 'SCHEDULED',
+      streamUrl: streamUrl || null,
     })
   } catch {
     return { error: 'Erro ao criar confronto.' }
@@ -156,6 +159,7 @@ const scoreSchema = z.object({
   homeScore: z.coerce.number().int().min(0).max(99).nullable(),
   awayScore: z.coerce.number().int().min(0).max(99).nullable(),
   status: z.enum(['SCHEDULED', 'LIVE', 'FINISHED', 'POSTPONED']),
+  streamUrl: z.string().url('URL de transmissão inválida.').optional().or(z.literal('')),
 })
 
 export async function updateMatchScoreAction(
@@ -176,13 +180,14 @@ export async function updateMatchScoreAction(
     homeScore: homeScoreRaw !== '' && homeScoreRaw !== null ? homeScoreRaw : null,
     awayScore: awayScoreRaw !== '' && awayScoreRaw !== null ? awayScoreRaw : null,
     status: formData.get('status'),
+    streamUrl: formData.get('streamUrl') || '',
   })
 
   if (!parsed.success) {
     return { error: parsed.error.errors.map((e) => e.message).join(', ') }
   }
 
-  const { matchId, homeScore, awayScore, status } = parsed.data
+  const { matchId, homeScore, awayScore, status, streamUrl } = parsed.data
 
   // Collect goals: form keys "goal_{playerId}:{teamId}" → count
   const goalEntries: { matchId: string; playerId: string; teamId: string; goals: number }[] = []
@@ -197,7 +202,7 @@ export async function updateMatchScoreAction(
   }
 
   try {
-    await db.update(matches).set({ homeScore, awayScore, status }).where(eq(matches.id, matchId))
+    await db.update(matches).set({ homeScore, awayScore, status, streamUrl: streamUrl || null }).where(eq(matches.id, matchId))
     await db.delete(matchGoals).where(eq(matchGoals.matchId, matchId))
     if (goalEntries.length > 0) {
       await db.insert(matchGoals).values(goalEntries)

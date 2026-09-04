@@ -14,6 +14,7 @@ type MatchRow = {
   status: 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'POSTPONED'
   date: Date
   leagueName: string | null
+  streamUrl: string | null
 }
 
 function StatusBadge({ status, date }: { status: MatchRow['status']; date: Date }) {
@@ -46,12 +47,19 @@ function StatusBadge({ status, date }: { status: MatchRow['status']; date: Date 
 function MatchCard({ match }: { match: MatchRow }) {
   const isLive = match.status === 'LIVE'
   const showScore = match.status === 'FINISHED' || isLive
+  const isClickable = isLive && !!match.streamUrl
+  const Tag = isClickable ? 'a' : 'div'
+  const linkProps = isClickable
+    ? { href: match.streamUrl!, target: '_blank', rel: 'noopener noreferrer' }
+    : {}
 
   return (
-    <div
+    <Tag
+      {...linkProps}
       className={cn(
         'flex items-center justify-between rounded-xl border bg-white px-3 py-3 shadow-sm sm:px-5 sm:py-4',
         isLive && 'border-red-200 bg-red-50/40',
+        isClickable && 'cursor-pointer transition hover:border-red-400 hover:shadow-md',
       )}
     >
       {/* Time da casa */}
@@ -86,7 +94,7 @@ function MatchCard({ match }: { match: MatchRow }) {
         <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-br from-emerald-600 to-slate-900 sm:h-9 sm:w-9" />
         <span className="truncate text-xs font-semibold text-slate-800 sm:text-sm">{match.awayTeamName}</span>
       </div>
-    </div>
+    </Tag>
   )
 }
 
@@ -104,6 +112,7 @@ export async function MatchesSection() {
       leagueName: leagues.name,
       homeTeamName: homeTeamAlias.name,
       awayTeamName: awayTeamAlias.name,
+      streamUrl: matches.streamUrl,
     })
     .from(matches)
     .leftJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))
