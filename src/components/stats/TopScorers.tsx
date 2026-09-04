@@ -22,7 +22,6 @@ export function TopScorers({ scorers }: { scorers: ScorerRow[] }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
-      {/* Header */}
       <div className="grid grid-cols-[2rem_1fr_3.5rem_3.5rem] gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-400 sm:grid-cols-[2.5rem_1fr_5rem_5rem] sm:gap-3 sm:px-4">
         <span>#</span>
         <span>Jogador</span>
@@ -40,7 +39,6 @@ export function TopScorers({ scorers }: { scorers: ScorerRow[] }) {
               key={scorer.id}
               className="grid grid-cols-[2rem_1fr_3.5rem_3.5rem] items-center gap-2 px-3 py-3 transition-colors hover:bg-slate-50 sm:grid-cols-[2.5rem_1fr_5rem_5rem] sm:gap-3 sm:px-4 sm:py-3.5"
             >
-              {/* Posição */}
               <div className="flex items-center justify-center">
                 {medal ? (
                   <span className="text-xl" aria-label={`${pos}º lugar`}>
@@ -51,7 +49,6 @@ export function TopScorers({ scorers }: { scorers: ScorerRow[] }) {
                 )}
               </div>
 
-              {/* Jogador + time */}
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-700 to-slate-900 text-xs font-bold text-white sm:h-9 sm:w-9">
                   {scorer.playerName
@@ -69,13 +66,11 @@ export function TopScorers({ scorers }: { scorers: ScorerRow[] }) {
                 </div>
               </div>
 
-              {/* Gols */}
               <div className="flex flex-col items-center">
                 <span className="text-xl font-bold text-slate-900">{scorer.goals}</span>
                 <span className="text-xs text-gray-400">gols</span>
               </div>
 
-              {/* Assistências */}
               <div className="flex flex-col items-center">
                 <span className="text-lg font-semibold text-slate-700">{scorer.assists}</span>
                 <span className="text-xs text-gray-400">assist.</span>

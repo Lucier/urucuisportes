@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/database/client'
-import { leagues, teams, standings, topScorers, matches } from '@/database/schema'
+import { leagues, teams, standings, topScorers, matches, rounds } from '@/database/schema'
 import { LeagueTabs, type TabKey } from '@/components/stats/LeagueTabs'
 import { StandingsTable } from '@/components/stats/StandingsTable'
 import { TopScorers } from '@/components/stats/TopScorers'
@@ -60,6 +60,7 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
       .select({
         id: standings.id,
         teamName: teams.name,
+        grupo: teams.grupo,
         played: standings.played,
         won: standings.won,
         drawn: standings.drawn,
@@ -95,10 +96,12 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
         awayScore: matches.awayScore,
         status: matches.status,
         date: matches.date,
+        grupo: rounds.grupo,
       })
       .from(matches)
       .leftJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))
       .leftJoin(awayTeamAlias, eq(matches.awayTeamId, awayTeamAlias.id))
+      .leftJoin(rounds, eq(matches.roundId, rounds.id))
       .where(eq(matches.leagueId, league.id))
       .orderBy(matches.date),
   ])
@@ -142,10 +145,10 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
       {/* Conteúdo da aba ativa */}
       <div className="rounded-b-xl border border-t-0 border-slate-100 p-0">
         {activeTab === 'classificacao' && (
-          <StandingsTable standings={standingRows} leagueSlug={leagueSlug} />
+          <StandingsTable standings={standingRows} leagueType={league.tipo} />
         )}
         {activeTab === 'artilharia' && <TopScorers scorers={scorerRows} />}
-        {activeTab === 'calendario' && <MatchCalendar matches={matchRows} />}
+        {activeTab === 'calendario' && <MatchCalendar matches={matchRows} leagueType={league.tipo} />}
       </div>
     </div>
   )

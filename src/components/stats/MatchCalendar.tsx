@@ -8,6 +8,12 @@ export interface CalendarMatch {
   awayScore: number | null
   status: 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'POSTPONED'
   date: Date
+  grupo?: number | null
+}
+
+function groupLabel(num: number): string {
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+  return `Grupo ${letters[num - 1] ?? num}`
 }
 
 function MatchRow({ match, pos }: { match: CalendarMatch; pos: number }) {
@@ -26,18 +32,15 @@ function MatchRow({ match, pos }: { match: CalendarMatch; pos: number }) {
         isLive && 'bg-red-50/50',
       )}
     >
-      {/* Número da partida — oculto em telas pequenas */}
       <span className="hidden w-5 flex-shrink-0 text-right text-xs font-medium text-gray-300 sm:block">
         {pos}
       </span>
 
-      {/* Data/hora */}
       <div className="w-12 flex-shrink-0 text-center sm:w-14">
         <p className="text-xs font-semibold text-slate-600">{dateStr}</p>
         <p className="text-xs text-gray-400">{timeStr}</p>
       </div>
 
-      {/* Home */}
       <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
         <span className="min-w-0 truncate text-right text-xs font-semibold text-slate-800 sm:text-sm">
           {match.homeTeamName}
@@ -45,7 +48,6 @@ function MatchRow({ match, pos }: { match: CalendarMatch; pos: number }) {
         <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-br from-slate-500 to-slate-900 sm:h-8 sm:w-8" />
       </div>
 
-      {/* Placar / vs */}
       <div className="flex w-16 flex-shrink-0 flex-col items-center gap-0.5 sm:w-20">
         {showScore ? (
           <span className="text-sm font-bold tabular-nums text-slate-900 sm:text-base">
@@ -68,7 +70,6 @@ function MatchRow({ match, pos }: { match: CalendarMatch; pos: number }) {
         )}
       </div>
 
-      {/* Away */}
       <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
         <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-br from-emerald-600 to-slate-900 sm:h-8 sm:w-8" />
         <span className="min-w-0 truncate text-xs font-semibold text-slate-800 sm:text-sm">
@@ -79,18 +80,7 @@ function MatchRow({ match, pos }: { match: CalendarMatch; pos: number }) {
   )
 }
 
-export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
-  if (matches.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <span className="text-4xl" aria-hidden>
-          📅
-        </span>
-        <p className="text-slate-500">Nenhuma partida registrada nesta competição.</p>
-      </div>
-    )
-  }
-
+function StatusSections({ matches }: { matches: CalendarMatch[] }) {
   const live = matches.filter((m) => m.status === 'LIVE')
   const finished = matches.filter((m) => m.status === 'FINISHED').reverse()
   const scheduled = matches.filter((m) => m.status === 'SCHEDULED')
@@ -102,16 +92,11 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
   ]
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+    <>
       {sections.map((section) => (
         <div key={section.label}>
-          <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-            <h3
-              className={cn(
-                'text-xs font-bold uppercase tracking-widest',
-                section.accent ?? 'text-gray-400',
-              )}
-            >
+          <div className="border-b border-slate-100 bg-slate-50 px-4 py-2">
+            <h3 className={cn('text-xs font-bold uppercase tracking-widest', section.accent ?? 'text-gray-400')}>
               {section.label}
             </h3>
           </div>
@@ -122,6 +107,55 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
           </div>
         </div>
       ))}
+    </>
+  )
+}
+
+export function MatchCalendar({
+  matches,
+  leagueType,
+}: {
+  matches: CalendarMatch[]
+  leagueType?: string | null
+}) {
+  if (matches.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16 text-center">
+        <span className="text-4xl" aria-hidden>📅</span>
+        <p className="text-slate-500">Nenhuma partida registrada nesta competição.</p>
+      </div>
+    )
+  }
+
+  if (leagueType === 'grupos') {
+    const byGroup = new Map<number, CalendarMatch[]>()
+    for (const m of matches) {
+      const g = m.grupo ?? 0
+      if (!byGroup.has(g)) byGroup.set(g, [])
+      byGroup.get(g)!.push(m)
+    }
+
+    const groups = [...byGroup.entries()].sort(([a], [b]) => a - b)
+
+    return (
+      <div className="space-y-6 p-4">
+        {groups.map(([num, groupMatches]) => (
+          <div key={num} className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+            <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+              <span className="text-sm font-bold uppercase tracking-widest text-slate-600">
+                {groupLabel(num)}
+              </span>
+            </div>
+            <StatusSections matches={groupMatches} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+      <StatusSections matches={matches} />
     </div>
   )
 }
