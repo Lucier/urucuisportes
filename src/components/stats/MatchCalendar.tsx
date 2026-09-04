@@ -9,6 +9,8 @@ export interface CalendarMatch {
   status: 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'POSTPONED'
   date: Date
   grupo?: number | null
+  roundNome?: string | null
+  roundNumero?: number | null
 }
 
 function groupLabel(num: number): string {
@@ -128,31 +130,33 @@ export function MatchCalendar({
   }
 
   if (leagueType === 'grupos') {
+    const groupMatches = matches.filter((m) => m.grupo != null)
+
     const byGroup = new Map<number, CalendarMatch[]>()
-    for (const m of matches) {
-      const g = m.grupo ?? 0
+    for (const m of groupMatches) {
+      const g = m.grupo!
       if (!byGroup.has(g)) byGroup.set(g, [])
       byGroup.get(g)!.push(m)
     }
-
     const groups = [...byGroup.entries()].sort(([a], [b]) => a - b)
 
     return (
       <div className="space-y-6 p-4">
-        {groups.map(([num, groupMatches]) => (
+        {groups.map(([num, gMatches]) => (
           <div key={num} className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
             <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
               <span className="text-sm font-bold uppercase tracking-widest text-slate-600">
                 {groupLabel(num)}
               </span>
             </div>
-            <StatusSections matches={groupMatches} />
+            <StatusSections matches={gMatches} />
           </div>
         ))}
       </div>
     )
   }
 
+  // Pontos corridos — tabela única
   return (
     <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
       <StatusSections matches={matches} />

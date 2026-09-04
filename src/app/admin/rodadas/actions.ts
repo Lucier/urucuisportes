@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { eq, and, max } from 'drizzle-orm'
+import { eq, and, max, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/database/client'
 import { rounds, matches, matchGoals } from '@/database/schema'
@@ -208,4 +208,63 @@ export async function updateMatchScoreAction(
 
   revalidate()
   return { success: 'Placar salvo com sucesso.' }
+}
+
+// ─── Rodada de mata-mata manual ───────────────────────────────────────────────
+
+export async function createKnockoutRoundAction(
+  _prev: RoundFormState,
+  formData: FormData,
+): Promise<RoundFormState> {
+  try {
+    await requireRole(UserRole.ADMIN)
+  } catch {
+    return { error: 'Acesso negado.' }
+  }
+
+  const leagueId = formData.get('leagueId') as string | null
+  const roundName = (formData.get('roundName') as string | null)?.trim()
+  const date = formData.get('date') as string | null
+  const countRaw = Number(formData.get('matchCount') ?? 0)
+
+  if (!leagueId) return { error: 'Liga inválida.' }
+  if (!roundName) return { error: 'Nome da fase obrigatório.' }
+  if (!date) return { error: 'Data e hora obrigatórias.' }
+  if (!countRaw || countRaw < 1) return { error: 'Adicione ao menos um confronto.' }
+
+  const matchPairs: { homeTeamId: string; awayTeamId: string }[] = []
+  for (let i = 0; i < countRaw; i++) {
+    const home = formData.get(`match_home_${i}`) as string | null
+    const away = formData.get(`match_away_${i}`) as string | null
+    if (!home || !away) return { error: `Confronto ${i + 1} incompleto.` }
+    if (home === away) return { error: `Confronto ${i + 1}: os times devem ser diferentes.` }
+    matchPairs.push({ homeTeamId: home, awayTeamId: away })
+  }
+
+  const [maxResult] = await db
+    .select({ maxNumero: max(rounds.numero) })
+    .from(rounds)
+    .where(and(eq(rounds.leagueId, leagueId), isNull(rounds.grupo)))
+
+  const numero = (maxResult?.maxNumero ?? 0) + 1
+
+  const [newRound] = await db
+    .insert(rounds)
+    .values({ leagueId, numero, nome: roundName, grupo: null })
+    .returning()
+
+  const matchDate = new Date(date)
+  await db.insert(matches).values(
+    matchPairs.map(({ homeTeamId, awayTeamId }) => ({
+      leagueId,
+      roundId: newRound.id,
+      homeTeamId,
+      awayTeamId,
+      date: matchDate,
+      status: 'SCHEDULED' as const,
+    })),
+  )
+
+  revalidate()
+  return { success: `"${roundName}" criada com ${matchPairs.length} confronto${matchPairs.length !== 1 ? 's' : ''}.` }
 }

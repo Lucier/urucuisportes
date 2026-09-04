@@ -8,6 +8,7 @@ import {
   createMatchAction,
   deleteMatchAction,
   updateMatchScoreAction,
+  createKnockoutRoundAction,
   type RoundFormState,
   type MatchFormState,
 } from '@/app/admin/rodadas/actions'
@@ -842,6 +843,80 @@ function CreateRoundForm({
   )
 }
 
+// ─── GroupStandings ───────────────────────────────────────────────────────────
+
+function GroupStandings({ rounds, teams }: { rounds: Round[]; teams: Team[] }) {
+  type Entry = { id: string; name: string; pts: number; gd: number; gf: number; played: number }
+
+  const map = new Map<string, Entry>()
+  for (const t of teams) {
+    map.set(t.id, { id: t.id, name: t.name, pts: 0, gd: 0, gf: 0, played: 0 })
+  }
+
+  for (const r of rounds) {
+    for (const m of r.matches) {
+      if (m.status !== 'FINISHED' || m.homeScore === null || m.awayScore === null) continue
+      const home = map.get(m.homeTeamId)
+      const away = map.get(m.awayTeamId)
+      if (!home || !away) continue
+      const hs = m.homeScore
+      const as_ = m.awayScore
+      home.gf += hs; home.gd += hs - as_; home.played++
+      away.gf += as_; away.gd += as_ - hs; away.played++
+      if (hs > as_) { home.pts += 3 }
+      else if (hs < as_) { away.pts += 3 }
+      else { home.pts += 1; away.pts += 1 }
+    }
+  }
+
+  const rows = [...map.values()].sort((a, b) =>
+    b.pts !== a.pts ? b.pts - a.pts : b.gd !== a.gd ? b.gd - a.gd : b.gf - a.gf,
+  )
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="border-b border-slate-100 bg-slate-50 px-3 py-1.5">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Classificação</span>
+      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            <th className="w-6 px-2 py-1.5 text-center">#</th>
+            <th className="px-2 py-1.5 text-left">Time</th>
+            <th className="px-2 py-1.5 text-center">J</th>
+            <th className="px-2 py-1.5 text-center">SG</th>
+            <th className="px-2 py-1.5 text-center font-bold text-slate-500">Pts</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {rows.map((row, i) => {
+            const isTop2 = i < 2
+            const isLast = i === rows.length - 1 && rows.length > 1
+            return (
+              <tr
+                key={row.id}
+                className={`border-l-2 ${isTop2 ? 'border-l-emerald-500 bg-emerald-50/40' : isLast ? 'border-l-red-400 bg-red-50/30' : 'border-l-transparent'}`}
+              >
+                <td className="px-2 py-1.5 text-center font-semibold text-slate-500">{i + 1}</td>
+                <td className={`px-2 py-1.5 font-semibold ${isTop2 ? 'text-emerald-800' : isLast ? 'text-red-600' : 'text-slate-700'}`}>
+                  {row.name}
+                  {i === 0 && <span className="ml-1 text-[9px] font-bold uppercase text-emerald-500">1º</span>}
+                  {i === 1 && <span className="ml-1 text-[9px] font-bold uppercase text-emerald-500">2º</span>}
+                </td>
+                <td className="px-2 py-1.5 text-center text-slate-400">{row.played}</td>
+                <td className="px-2 py-1.5 text-center text-slate-400">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+                <td className="px-2 py-1.5 text-center font-bold text-slate-800">{row.pts}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // ─── GroupSection ─────────────────────────────────────────────────────────────
 
 function GroupSection({
@@ -904,12 +979,318 @@ function GroupSection({
           />
         ))}
 
+        <GroupStandings rounds={rounds} teams={groupTeams} />
+
         <CreateRoundForm
           leagueId={leagueId}
           grupo={grupo}
           state={roundState}
           formAction={roundAction}
         />
+      </div>
+    </div>
+  )
+}
+
+// ─── KnockoutBracketForm ──────────────────────────────────────────────────────
+
+const FASE_PRESETS = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', '3º Lugar', 'Final']
+
+function computeClassified(allGroupRounds: Round[], teams: Team[]) {
+  const stats = new Map<string, { pts: number; gd: number; gf: number }>()
+  for (const t of teams) stats.set(t.id, { pts: 0, gd: 0, gf: 0 })
+
+  for (const r of allGroupRounds) {
+    for (const m of r.matches) {
+      if (m.status !== 'FINISHED' || m.homeScore == null || m.awayScore == null) continue
+      const home = stats.get(m.homeTeamId)
+      const away = stats.get(m.awayTeamId)
+      if (!home || !away) continue
+      home.gf += m.homeScore; home.gd += m.homeScore - m.awayScore
+      away.gf += m.awayScore; away.gd += m.awayScore - m.homeScore
+      if (m.homeScore > m.awayScore) home.pts += 3
+      else if (m.homeScore < m.awayScore) away.pts += 3
+      else { home.pts += 1; away.pts += 1 }
+    }
+  }
+
+  const byGroup = new Map<number, Team[]>()
+  for (const t of teams) {
+    if (t.grupo == null) continue
+    if (!byGroup.has(t.grupo)) byGroup.set(t.grupo, [])
+    byGroup.get(t.grupo)!.push(t)
+  }
+
+  return [...byGroup.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([grupo, gTeams]) => {
+      const sorted = [...gTeams].sort((a, b) => {
+        const sa = stats.get(a.id)!
+        const sb = stats.get(b.id)!
+        if (sb.pts !== sa.pts) return sb.pts - sa.pts
+        if (sb.gd !== sa.gd) return sb.gd - sa.gd
+        return sb.gf - sa.gf
+      })
+      return {
+        grupo,
+        first: sorted[0] ?? null,
+        second: sorted[1] ?? null,
+        pts: (id: string) => stats.get(id)?.pts ?? 0,
+      }
+    })
+}
+
+function KnockoutBracketForm({
+  leagueId,
+  allGroupRounds,
+  teams,
+}: {
+  leagueId: string
+  allGroupRounds: Round[]
+  teams: Team[]
+}) {
+  const [state, formAction] = useActionState(createKnockoutRoundAction, {})
+  const [open, setOpen] = useState(false)
+  const [roundName, setRoundName] = useState('')
+  const [matchups, setMatchups] = useState<{ home: string; away: string }[]>([{ home: '', away: '' }])
+
+  const classified = computeClassified(allGroupRounds, teams)
+
+  function addMatchup() {
+    setMatchups((prev) => [...prev, { home: '', away: '' }])
+  }
+  function removeMatchup(i: number) {
+    setMatchups((prev) => prev.filter((_, idx) => idx !== i))
+  }
+  function setHome(i: number, v: string) {
+    setMatchups((prev) => prev.map((m, idx) => idx === i ? { ...m, home: v } : m))
+  }
+  function setAway(i: number, v: string) {
+    setMatchups((prev) => prev.map((m, idx) => idx === i ? { ...m, away: v } : m))
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amber-200 py-3 text-sm font-medium text-amber-700 transition hover:border-amber-400 hover:text-amber-800"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        Nova rodada de mata-mata
+      </button>
+    )
+  }
+
+  return (
+    <form action={formAction} className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 space-y-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Nova rodada de mata-mata</p>
+
+      <input type="hidden" name="leagueId" value={leagueId} />
+      <input type="hidden" name="matchCount" value={matchups.length} />
+      {matchups.map((m, i) => (
+        <input key={`h${i}`} type="hidden" name={`match_home_${i}`} value={m.home} />
+      ))}
+      {matchups.map((m, i) => (
+        <input key={`a${i}`} type="hidden" name={`match_away_${i}`} value={m.away} />
+      ))}
+
+      {/* Classificados por grupo — referência */}
+      {classified.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-medium text-slate-600">Classificados por grupo</p>
+          <div className="flex flex-wrap gap-2">
+            {classified.map((g) => (
+              <div key={g.grupo} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
+                <span className="mb-1 flex items-center gap-1 font-bold text-slate-500">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-sky-600 text-[9px] font-bold text-white">
+                    {String.fromCharCode(64 + g.grupo)}
+                  </span>
+                  Grupo {String.fromCharCode(64 + g.grupo)}
+                </span>
+                <p className="text-emerald-700 font-semibold">
+                  1º {g.first?.name ?? <span className="italic text-slate-400">—</span>}
+                  {g.first && <span className="ml-1 text-[10px] text-slate-400">({g.pts(g.first.id)}pts)</span>}
+                </p>
+                <p className="text-slate-600 font-medium">
+                  2º {g.second?.name ?? <span className="italic text-slate-400">—</span>}
+                  {g.second && <span className="ml-1 text-[10px] text-slate-400">({g.pts(g.second.id)}pts)</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Confrontos */}
+      <div>
+        <p className="mb-2 text-xs font-medium text-slate-600">Confrontos</p>
+        <div className="space-y-2">
+          {matchups.map((m, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-4 flex-shrink-0 text-center text-xs font-semibold text-slate-400">{i + 1}</span>
+              <select
+                value={m.home}
+                onChange={(e) => setHome(i, e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+              >
+                <option value="">Casa…</option>
+                {teams.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}{t.grupo ? ` (G${String.fromCharCode(64 + t.grupo)})` : ''}</option>
+                ))}
+              </select>
+              <span className="flex-shrink-0 text-xs font-bold text-slate-300">×</span>
+              <select
+                value={m.away}
+                onChange={(e) => setAway(i, e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+              >
+                <option value="">Visitante…</option>
+                {teams
+                  .filter((t) => t.id !== m.home)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}{t.grupo ? ` (G${String.fromCharCode(64 + t.grupo)})` : ''}</option>
+                  ))}
+              </select>
+              {matchups.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeMatchup(i)}
+                  className="rounded px-1.5 py-1 text-xs text-red-400 hover:bg-red-50"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={addMatchup}
+          className="mt-2 text-xs font-medium text-amber-700 hover:underline"
+        >
+          + Adicionar confronto
+        </button>
+      </div>
+
+      {/* Nome e data */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">
+            Nome da fase <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="roundName"
+            type="text"
+            required
+            value={roundName}
+            onChange={(e) => setRoundName(e.target.value)}
+            placeholder="Ex: Semifinal, Quartas…"
+            className={inputCls}
+          />
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {FASE_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setRoundName(p)}
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
+                  roundName === p
+                    ? 'border-amber-500 bg-amber-500 text-white'
+                    : 'border-slate-200 bg-white text-slate-500 hover:border-amber-400 hover:text-amber-700'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">
+            Data dos confrontos <span className="text-red-500">*</span>
+          </label>
+          <input type="datetime-local" name="date" required className={inputCls} />
+        </div>
+      </div>
+
+      {state.error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+      )}
+      {state.success && (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{state.success}</p>
+      )}
+
+      <div className="flex gap-2">
+        <SaveBtn label="Criar rodada" />
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setRoundName(''); setMatchups([{ home: '', away: '' }]) }}
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}
+
+// ─── FaseFinalSection ─────────────────────────────────────────────────────────
+
+function FaseFinalSection({
+  rounds,
+  allGroupRounds,
+  leagueId,
+  teams,
+  players,
+  activeMatchRound,
+  onToggleMatch,
+  matchState,
+  matchAction,
+}: {
+  rounds: Round[]
+  allGroupRounds: Round[]
+  leagueId: string
+  teams: Team[]
+  players: Player[]
+  activeMatchRound: string | null
+  onToggleMatch: (id: string) => void
+  matchState: MatchFormState
+  matchAction: (payload: FormData) => void
+}) {
+  return (
+    <div className="rounded-2xl border border-amber-100 bg-amber-50/30 p-4 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-base">🏆</span>
+        <div>
+          <h3 className="font-bold text-slate-800">Fase Final</h3>
+          <p className="text-xs text-slate-400">Rodadas eliminatórias — monte os confrontos manualmente</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {rounds.length === 0 && (
+          <p className="rounded-lg border border-dashed border-amber-200 py-4 text-center text-xs text-amber-600">
+            Nenhuma fase eliminatória criada ainda.
+          </p>
+        )}
+
+        {rounds.map((r) => (
+          <RoundCard
+            key={r.id}
+            round={r}
+            leagueId={leagueId}
+            teams={teams}
+            players={players}
+            isAddingMatch={activeMatchRound === r.id}
+            onToggleAdd={() => onToggleMatch(r.id)}
+            matchState={matchState}
+            matchAction={matchAction}
+          />
+        ))}
+
+        <KnockoutBracketForm leagueId={leagueId} allGroupRounds={allGroupRounds} teams={teams} />
       </div>
     </div>
   )
@@ -977,6 +1358,8 @@ export function RoundManager({
 
   const numGrupos = league.numeroGrupos ?? 0
   const grupos = Array.from({ length: numGrupos }, (_, i) => i + 1)
+  const allGroupRounds = rounds.filter((r) => r.grupo !== null)
+  const faseFinalRounds = rounds.filter((r) => r.grupo === null)
 
   return (
     <div className="space-y-6">
@@ -999,6 +1382,26 @@ export function RoundManager({
           />
         )
       })}
+
+      {numGrupos > 0 && (
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">Fase eliminatória</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+      )}
+
+      <FaseFinalSection
+        rounds={faseFinalRounds}
+        allGroupRounds={allGroupRounds}
+        leagueId={league.id}
+        teams={teams}
+        players={players}
+        activeMatchRound={activeMatchRound}
+        onToggleMatch={toggleMatch}
+        matchState={matchState}
+        matchAction={matchAction}
+      />
 
       {teams.length === 0 && (
         <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">

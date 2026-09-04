@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, and, isNull } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { db } from '@/database/client'
 import { leagues, teams, standings, topScorers, matches, rounds } from '@/database/schema'
@@ -9,6 +9,7 @@ import { LeagueTabs, type TabKey } from '@/components/stats/LeagueTabs'
 import { StandingsTable } from '@/components/stats/StandingsTable'
 import { TopScorers } from '@/components/stats/TopScorers'
 import { MatchCalendar } from '@/components/stats/MatchCalendar'
+import { KnockoutBracket } from '@/components/stats/KnockoutBracket'
 
 interface PageProps {
   params: Promise<{ leagueSlug: string }>
@@ -35,7 +36,7 @@ export async function generateStaticParams() {
   return rows.map(({ slug }) => ({ leagueSlug: slug }))
 }
 
-const VALID_TABS: TabKey[] = ['classificacao', 'artilharia', 'calendario']
+const VALID_TABS: TabKey[] = ['classificacao', 'artilharia', 'calendario', 'fase-final']
 
 export default async function LeaguePage({ params, searchParams }: PageProps) {
   const { leagueSlug } = await params
@@ -55,7 +56,10 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
   const homeTeamAlias = alias(teams, 'home_team')
   const awayTeamAlias = alias(teams, 'away_team')
 
-  const [standingRows, scorerRows, matchRows] = await Promise.all([
+  const homeTeamAlias2 = alias(teams, 'home_team_ko')
+  const awayTeamAlias2 = alias(teams, 'away_team_ko')
+
+  const [standingRows, scorerRows, matchRows, knockoutRows] = await Promise.all([
     db
       .select({
         id: standings.id,
@@ -91,12 +95,16 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
       .select({
         id: matches.id,
         homeTeamName: homeTeamAlias.name,
+        homeTeamLogo: homeTeamAlias.logoUrl,
         awayTeamName: awayTeamAlias.name,
+        awayTeamLogo: awayTeamAlias.logoUrl,
         homeScore: matches.homeScore,
         awayScore: matches.awayScore,
         status: matches.status,
         date: matches.date,
         grupo: rounds.grupo,
+        roundNome: rounds.nome,
+        roundNumero: rounds.numero,
       })
       .from(matches)
       .leftJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))
@@ -104,6 +112,27 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
       .leftJoin(rounds, eq(matches.roundId, rounds.id))
       .where(eq(matches.leagueId, league.id))
       .orderBy(matches.date),
+
+    db
+      .select({
+        id: matches.id,
+        homeTeamName: homeTeamAlias2.name,
+        homeTeamLogo: homeTeamAlias2.logoUrl,
+        awayTeamName: awayTeamAlias2.name,
+        awayTeamLogo: awayTeamAlias2.logoUrl,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+        status: matches.status,
+        date: matches.date,
+        roundNome: rounds.nome,
+        roundNumero: rounds.numero,
+      })
+      .from(matches)
+      .innerJoin(rounds, and(eq(matches.roundId, rounds.id), isNull(rounds.grupo)))
+      .innerJoin(homeTeamAlias2, eq(matches.homeTeamId, homeTeamAlias2.id))
+      .innerJoin(awayTeamAlias2, eq(matches.awayTeamId, awayTeamAlias2.id))
+      .where(eq(matches.leagueId, league.id))
+      .orderBy(rounds.numero, matches.date),
   ])
 
   const FLAG: Record<string, string> = { Brasil: '🇧🇷', 'América do Sul': '🌎' }
@@ -139,7 +168,7 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
 
       {/* Tabs */}
       <div className="rounded-t-xl border border-b-0 border-slate-100 bg-white overflow-hidden">
-        <LeagueTabs activeTab={activeTab} />
+        <LeagueTabs activeTab={activeTab} showKnockout={league.tipo === 'grupos'} />
       </div>
 
       {/* Conteúdo da aba ativa */}
@@ -149,6 +178,9 @@ export default async function LeaguePage({ params, searchParams }: PageProps) {
         )}
         {activeTab === 'artilharia' && <TopScorers scorers={scorerRows} />}
         {activeTab === 'calendario' && <MatchCalendar matches={matchRows} leagueType={league.tipo} />}
+        {activeTab === 'fase-final' && (
+          <KnockoutBracket matches={knockoutRows} />
+        )}
       </div>
     </div>
   )

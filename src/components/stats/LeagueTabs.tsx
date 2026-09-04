@@ -3,18 +3,30 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/shared/utils'
 
-const TABS = [
+const BASE_TABS = [
   { key: 'classificacao', label: 'Classificação' },
   { key: 'artilharia', label: 'Artilharia' },
   { key: 'calendario', label: 'Calendário' },
 ] as const
 
-export type TabKey = (typeof TABS)[number]['key']
+const KNOCKOUT_TAB = { key: 'fase-final', label: 'Fase Final' } as const
 
-export function LeagueTabs({ activeTab }: { activeTab: TabKey }) {
+export type TabKey = (typeof BASE_TABS)[number]['key'] | 'fase-final'
+
+export function LeagueTabs({
+  activeTab,
+  showKnockout = false,
+}: {
+  activeTab: TabKey
+  showKnockout?: boolean
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  const tabs: readonly { key: TabKey; label: string }[] = showKnockout
+    ? [...BASE_TABS, KNOCKOUT_TAB]
+    : BASE_TABS
 
   function navigate(tab: TabKey) {
     const params = new URLSearchParams(searchParams.toString())
@@ -29,7 +41,7 @@ export function LeagueTabs({ activeTab }: { activeTab: TabKey }) {
 
   return (
     <div className="flex overflow-x-auto border-b border-slate-200 bg-white scrollbar-none">
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.key}
           onClick={() => navigate(tab.key)}
